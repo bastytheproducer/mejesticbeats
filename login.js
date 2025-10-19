@@ -25,6 +25,14 @@ function initializeGoogleSignIn() {
         callback: handleCredentialResponse
     });
 
+    // Configurar el origen autorizado para desarrollo local
+    gapi.load('auth2', function() {
+        gapi.auth2.init({
+            client_id: '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com',
+            scope: 'profile email'
+        });
+    });
+
     // Renderizar el botón de Google para login
     google.accounts.id.renderButton(
         document.getElementById('google-login-button'),
@@ -64,13 +72,34 @@ function handleCredentialResponse(response) {
     // Decodificar el JWT token
     const responsePayload = decodeJwtResponse(response.credential);
 
-    // Aquí puedes enviar el token a tu servidor para validación
-    // Por ahora, simulamos el login exitoso
     console.log('Usuario autenticado:', responsePayload);
 
-    // Redirigir a la página de checkout
-    const selectedBeat = new URLSearchParams(window.location.search).get('beat');
-    window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
+    // Enviar el token al servidor para validación
+    fetch('/api/auth/google', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            credential: response.credential
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Autenticación exitosa en el servidor');
+            // Redirigir a la página de checkout
+            const selectedBeat = new URLSearchParams(window.location.search).get('beat');
+            window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
+        } else {
+            console.error('Error en la autenticación:', data.message);
+            alert('Error en la autenticación: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error al enviar el token al servidor:', error);
+        alert('Error de conexión. Inténtalo de nuevo.');
+    });
 }
 
 function decodeJwtResponse(token) {
