@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout - Beat Venta</title>
     <link rel="stylesheet" href="checkout.css">
+    <script src="https://www.paypal.com/sdk/js?client-id=TU_CLIENT_ID_SANDBOX&currency=USD"></script>
 </head>
 <body>
     <div class="container">
@@ -68,6 +69,9 @@
                             <input type="text" id="cardName" placeholder="Como aparece en la tarjeta">
                         </div>
                     </div>
+
+                    <!-- PayPal Buttons Container -->
+                    <div id="paypal-button-container" style="display: none;"></div>
                 </div>
 
                 <div class="billing-section">

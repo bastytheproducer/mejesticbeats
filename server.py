@@ -2,6 +2,8 @@ from flask import Flask, send_from_directory, request, jsonify
 import ssl
 import os
 import ipaddress
+import requests
+import json
 
 app = Flask(__name__, static_folder='.')
 
@@ -20,6 +22,84 @@ def google_auth():
     if data and 'credential' in data:
         return jsonify({'success': True, 'message': 'Autenticación exitosa'})
     return jsonify({'success': False, 'message': 'Token inválido'}), 400
+
+# Configuración de PayPal (Sandbox)
+PAYPAL_CLIENT_ID = 'TU_CLIENT_ID_SANDBOX'  # Reemplaza con tu Client ID real
+PAYPAL_CLIENT_SECRET = 'TU_CLIENT_SECRET_SANDBOX'  # Reemplaza con tu Client Secret real
+PAYPAL_BASE_URL = 'https://api-m.sandbox.paypal.com'  # Cambia a https://api-m.paypal.com para producción
+
+def get_paypal_access_token():
+    """Obtener access token de PayPal"""
+    url = f"{PAYPAL_BASE_URL}/v1/oauth2/token"
+    headers = {
+        'Accept': 'application/json',
+        'Accept-Language': 'en_US',
+    }
+    data = {
+        'grant_type': 'client_credentials'
+    }
+    response = requests.post(url, headers=headers, data=data, auth=(PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET))
+    response.raise_for_status()
+    return response.json()['access_token']
+
+@app.route('/api/paypal/create-order', methods=['POST'])
+def create_paypal_order():
+    """Crear una orden de PayPal"""
+    try:
+        data = request.get_json()
+        beat_name = data.get('beat_name', 'Beat')
+        amount = data.get('amount', '20.00')  # Monto por defecto
+
+        access_token = get_paypal_access_token()
+
+        url = f"{PAYPAL_BASE_URL}/v2/checkout/orders"
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {access_token}'
+        }
+
+        order_data = {
+            'intent': 'CAPTURE',
+            'purchase_units': [{
+                'amount': {
+                    'currency_code': 'USD',
+                    'value': amount
+                },
+                'description': f'Compra de beat: {beat_name}'
+            }],
+            'application_context': {
+                'return_url': 'https://localhost:5000/success.html',
+                'cancel_url': 'https://localhost:5000/checkout.html'
+            }
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(order_data))
+        response.raise_for_status()
+
+        return jsonify(response.json())
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/paypal/capture-order/<order_id>', methods=['POST'])
+def capture_paypal_order(order_id):
+    """Capturar el pago de una orden de PayPal"""
+    try:
+        access_token = get_paypal_access_token()
+
+        url = f"{PAYPAL_BASE_URL}/v2/checkout/orders/{order_id}/capture"
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {access_token}'
+        }
+
+        response = requests.post(url, headers=headers)
+        response.raise_for_status()
+
+        return jsonify(response.json())
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 
