@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Beat Venta</title>
+    <link rel="stylesheet" href="checkout.css">
+</head>
+<body>
+    <div class="container">
+        <div class="checkout-form">
+            <div class="logo">
+                <h1>Beat Venta</h1>
+            </div>
+            <h2>Finalizar Compra</h2>
+
+            <div class="order-summary">
+                <h3>Resumen de la Orden</h3>
+                <div class="beat-info">
+                    <img id="beat-image" src="" alt="Beat" class="beat-thumb">
+                    <div class="beat-details">
+                        <h4 id="beat-title">Beat</h4>
+                        <p id="beat-genre">Género</p>
+                        <p class="price" id="beat-price">$0</p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="paymentForm">
+                <div class="payment-section">
+                    <h3>Información de Pago</h3>
+
+                    <div class="payment-methods">
+                        <label class="payment-method">
+                            <input type="radio" name="paymentMethod" value="transbank" checked>
+                            <span class="method-icon">🏦</span>
+                            <span>Transbank</span>
+                        </label>
+                        <label class="payment-method">
+                            <input type="radio" name="paymentMethod" value="card">
+                            <span class="method-icon">💳</span>
+                            <span>Tarjeta de Crédito/Débito</span>
+                        </label>
+                        <label class="payment-method">
+                            <input type="radio" name="paymentMethod" value="paypal">
+                            <span class="method-icon">🅿️</span>
+                            <span>PayPal</span>
+                        </label>
+                    </div>
+
+                    <div id="cardFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="cardNumber">Número de Tarjeta</label>
+                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expiryDate">Fecha de Expiración</label>
+                                <input type="text" id="expiryDate" placeholder="MM/AA" maxlength="5">
+                            </div>
+                            <div class="form-group">
+                                <label for="cvv">CVV</label>
+                                <input type="text" id="cvv" placeholder="123" maxlength="4">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="cardName">Nombre en la Tarjeta</label>
+                            <input type="text" id="cardName" placeholder="Como aparece en la tarjeta">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="billing-section">
+                    <h3>Información de Facturación</h3>
+                    <div class="form-group">
+                        <label for="billingName">Nombre Completo</label>
+                        <input type="text" id="billingName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="billingEmail">Correo Electrónico</label>
+                        <input type="email" id="billingEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="billingAddress">Dirección</label>
+                        <input type="text" id="billingAddress" placeholder="Calle, número, comuna" required>
+                    </div>
+                </div>
+
+                <div class="terms">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="terms" required>
+                        <span>Acepto los <a href="#" onclick="showTerms()">términos y condiciones</a></span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-primary">Pagar Ahora</button>
+            </form>
+        </div>
+    </div>
+    <script src="checkout.js"></script>
+</body>
+</html>

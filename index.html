@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beat Venta - Tienda de Beats</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>BEAT DE CALIDAD</h1>
+            <p>Tu tienda de beats exclusivos</p>
+        </header>
+        <main>
+            <div class="track-list">
+                <div class="track" data-src="BEATS/BEAT VERANO REGGEATON.mp3">
+                    <div class="track-info">
+                        <img src="Caratulas de lo beats/beat verano reggeaton.png" alt="Beat Verano Reggaeton" class="album-art">
+                        <div class="details">
+                            <h3>Beat Verano Reggaeton</h3>
+                            <p>Género: Reggaeton</p>
+                            <p>Precio: $20</p>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="play-btn">▶</button>
+                        <button class="buy-btn" onclick="buyBeat('Beat Verano Reggaeton')">Comprar Ahora</button>
+                    </div>
+                </div>
+                <div class="track" data-src="BEATS/BEAT 2025 VERANO TRAP HOUSE.mp3">
+                    <div class="track-info">
+                        <img src="Caratulas de lo beats/Beat 2025 verano trap.png" alt="Beat 2025 Verano Trap" class="album-art">
+                        <div class="details">
+                            <h3>Beat 2025 Verano Trap</h3>
+                            <p>Género: Trap</p>
+                            <p>Precio: $25</p>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="play-btn">▶</button>
+                        <button class="buy-btn" onclick="buyBeat('Beat 2025 Verano Trap')">Comprar Ahora</button>
+                    </div>
+                </div>
+                <div class="track" data-src="BEATS/BEAT RELLAX REGGEATON.mp3">
+                    <div class="track-info">
+                        <img src="Caratulas de lo beats/beat rellax reggeaton.png" alt="Beat Rellax Reggaeton" class="album-art">
+                        <div class="details">
+                            <h3>Beat Rellax Reggaeton</h3>
+                            <p>Género: Reggaeton Relax</p>
+                            <p>Precio: $22</p>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="play-btn">▶</button>
+                        <button class="buy-btn" onclick="buyBeat('Beat Rellax Reggaeton')">Comprar Ahora</button>
+                    </div>
+                </div>
+                <div class="track" data-src="BEATS/BEAT HIP HOP PIANO GIGANT.mp3">
+                    <div class="track-info">
+                        <img src="Caratulas de lo beats/beat hip hop piano gigant.jpg" alt="Beat Hip Hop Piano Gigant" class="album-art">
+                        <div class="details">
+                            <h3>Beat Hip Hop Piano Gigant</h3>
+                            <p>Género: Hip Hop</p>
+                            <p>Precio: $28</p>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="play-btn">▶</button>
+                        <button class="buy-btn" onclick="buyBeat('Beat Hip Hop Piano Gigant')">Comprar Ahora</button>
+                    </div>
+                </div>
+                <div class="track" data-src="BEATS/BEAT SIN FRONTERA.mp3">
+                    <div class="track-info">
+                        <img src="Caratulas de lo beats/beat sin frontera.png" alt="Beat Sin Frontera" class="album-art">
+                        <div class="details">
+                            <h3>Beat Sin Frontera</h3>
+                            <p>Género: Instrumental</p>
+                            <p>Precio: $30</p>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="play-btn">▶</button>
+                        <button class="buy-btn" onclick="buyBeat('Beat Sin Frontera')">Comprar Ahora</button>
+                    </div>
+                </div>
+                <div class="track" data-src="BEATS/BEAT TRAP NAVIDEÑO CHILLING.mp3">
+                    <div class="track-info">
+                        <img src="Caratulas de lo beats/beat trap navideño chilling.png" alt="Beat Trap Navideño Chilling" class="album-art">
+                        <div class="details">
+                            <h3>Beat Trap Navideño Chilling</h3>
+                            <p>Género: Trap Navideño</p>
+                            <p>Precio: $26</p>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="play-btn">▶</button>
+                        <button class="buy-btn" onclick="buyBeat('Beat Trap Navideño Chilling')">Comprar Ahora</button>
+                    </div>
+                </div>
+            </div>
+            <div class="player">
+                <div class="now-playing">
+                    <img id="current-art" src="https://via.placeholder.com/200x200/333/fff?text=Now+Playing" alt="Now Playing">
+                    <div class="track-details">
+                        <h4 id="current-title">Selecciona un beat</h4>
+                        <p id="current-genre">-</p>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <span id="current-time">0:00</span>
+                    <input type="range" id="progress-bar" value="0" max="100">
+                    <span id="duration">0:00</span>
+                </div>
+                <div class="player-controls">
+                    <button id="prev-btn">⏮</button>
+                    <button id="play-pause-btn">▶</button>
+                    <button id="next-btn">⏭</button>
+                </div>
+                <audio id="audio-player"></audio>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
