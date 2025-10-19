@@ -18,21 +18,47 @@ function showLogin() {
     document.querySelector('.login-form').style.display = 'block';
 }
 
-function loginWithGoogle() {
-    // Inicializar Google Sign-In
+function initializeGoogleSignIn() {
+    // Inicializar Google Sign-In para login
     google.accounts.id.initialize({
         client_id: '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com',
         callback: handleCredentialResponse
     });
 
-    // Mostrar el prompt de Google Sign-In
-    google.accounts.id.prompt();
+    // Renderizar el botón de Google para login
+    google.accounts.id.renderButton(
+        document.getElementById('google-login-button'),
+        {
+            theme: 'outline',
+            size: 'large',
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left'
+        }
+    );
+
+    // Renderizar el botón de Google para registro
+    google.accounts.id.renderButton(
+        document.getElementById('google-register-button'),
+        {
+            theme: 'outline',
+            size: 'large',
+            text: 'signup_with',
+            shape: 'rectangular',
+            logo_alignment: 'left'
+        }
+    );
 }
 
-function registerWithGoogle() {
-    // Para registro, usamos el mismo flujo que login
-    loginWithGoogle();
-}
+// Llamar a la inicialización cuando el script de Google esté cargado
+window.onload = function() {
+    if (typeof google !== 'undefined') {
+        initializeGoogleSignIn();
+    } else {
+        // Si el script no está cargado, esperar un poco
+        setTimeout(initializeGoogleSignIn, 1000);
+    }
+};
 
 function handleCredentialResponse(response) {
     // Decodificar el JWT token
