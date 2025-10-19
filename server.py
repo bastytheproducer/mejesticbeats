@@ -21,6 +21,14 @@ def google_auth():
         return jsonify({'success': True, 'message': 'Autenticación exitosa'})
     return jsonify({'success': False, 'message': 'Token inválido'}), 400
 
+@app.route('/api/auth/facebook', methods=['POST'])
+def facebook_auth():
+    data = request.get_json()
+    # Simular validación de datos de Facebook
+    if data and 'userID' in data and 'name' in data and 'email' in data:
+        return jsonify({'success': True, 'message': 'Autenticación exitosa'})
+    return jsonify({'success': False, 'message': 'Datos inválidos'}), 400
+
 if __name__ == '__main__':
     # Para desarrollo local con HTTPS y certificados de confianza
     import os
