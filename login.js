@@ -58,113 +58,15 @@ function initializeGoogleSignIn() {
     );
 }
 
-function initializeFacebookLogin() {
-    // Inicializar Facebook SDK
-    window.fbAsyncInit = function() {
-        FB.init({
-            appId: 'TU_APP_ID_FACEBOOK', // Reemplaza con tu App ID real
-            cookie: true,
-            xfbml: true,
-            version: 'v18.0'
-        });
 
-        // Renderizar botones de Facebook
-        FB.XFBML.parse();
 
-        // Crear botones de Facebook manualmente
-        createFacebookButtons();
-    };
-
-    // Función para crear botones de Facebook
-    function createFacebookButtons() {
-        // Botón de login con Facebook
-        const fbLoginBtn = document.createElement('div');
-        fbLoginBtn.className = 'fb-login-button';
-        fbLoginBtn.setAttribute('data-width', '');
-        fbLoginBtn.setAttribute('data-size', 'large');
-        fbLoginBtn.setAttribute('data-button-type', 'login_with');
-        fbLoginBtn.setAttribute('data-layout', 'default');
-        fbLoginBtn.setAttribute('data-auto-logout-link', 'false');
-        fbLoginBtn.setAttribute('data-use-continue-as', 'true');
-        fbLoginBtn.setAttribute('onlogin', 'checkLoginState();');
-        document.getElementById('facebook-login-button').appendChild(fbLoginBtn);
-
-        // Botón de registro con Facebook
-        const fbRegisterBtn = document.createElement('div');
-        fbRegisterBtn.className = 'fb-login-button';
-        fbRegisterBtn.setAttribute('data-width', '');
-        fbRegisterBtn.setAttribute('data-size', 'large');
-        fbRegisterBtn.setAttribute('data-button-type', 'continue_with');
-        fbRegisterBtn.setAttribute('data-layout', 'default');
-        fbRegisterBtn.setAttribute('data-auto-logout-link', 'false');
-        fbRegisterBtn.setAttribute('data-use-continue-as', 'true');
-        fbRegisterBtn.setAttribute('onlogin', 'checkLoginState();');
-        document.getElementById('facebook-register-button').appendChild(fbRegisterBtn);
-    }
-}
-
-// Función para manejar el estado de login de Facebook
-function checkLoginState() {
-    FB.getLoginStatus(function(response) {
-        statusChangeCallback(response);
-    });
-}
-
-function statusChangeCallback(response) {
-    if (response.status === 'connected') {
-        // Usuario conectado, obtener información
-        FB.api('/me', {fields: 'name,email'}, function(response) {
-            console.log('Usuario autenticado con Facebook:', response);
-
-            // Enviar datos al servidor
-            fetch('/api/auth/facebook', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userID: response.id,
-                    name: response.name,
-                    email: response.email
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Autenticación exitosa en el servidor');
-                    // Redirigir a la página de checkout
-                    const selectedBeat = new URLSearchParams(window.location.search).get('beat');
-                    window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
-                } else {
-                    console.error('Error en la autenticación:', data.message);
-                    alert('Error en la autenticación: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error al enviar datos al servidor:', error);
-                alert('Error de conexión. Inténtalo de nuevo.');
-            });
-        });
-    } else {
-        console.log('Usuario no conectado con Facebook');
-    }
-}
-
-// Llamar a la inicialización cuando los scripts estén cargados
+// Llamar a la inicialización cuando el script de Google esté cargado
 window.onload = function() {
     if (typeof google !== 'undefined') {
         initializeGoogleSignIn();
     } else {
         // Si el script no está cargado, esperar un poco
         setTimeout(initializeGoogleSignIn, 1000);
-    }
-
-    // Inicializar Facebook (se ejecuta automáticamente con fbAsyncInit)
-    if (typeof FB !== 'undefined') {
-        initializeFacebookLogin();
-    } else {
-        // Si el script no está cargado, esperar un poco
-        setTimeout(initializeFacebookLogin, 1000);
     }
 };
 
