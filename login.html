@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Beat Venta</title>
+    <link rel="stylesheet" href="login.css">
+    <meta name="google-signin-client_id" content="834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="login-form">
+            <div class="logo">
+                <h1>Beat Venta</h1>
+            </div>
+            <h2>Iniciar Sesión</h2>
+            <p>Accede a tu cuenta para completar la compra</p>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Correo electrónico</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <div class="password-container">
+                        <input type="password" id="password" name="password" required>
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password')">
+                            <svg class="eye-icon" viewBox="0 0 24 24">
+                                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Iniciar Sesión</button>
+            </form>
+
+            <div class="divider">
+                <span>o</span>
+            </div>
+
+            <div id="google-login-button"></div>
+
+            <div class="links">
+                <a href="#" onclick="showRegister()">¿No tienes cuenta? Regístrate</a>
+                <a href="#" onclick="forgotPassword()">¿Olvidaste tu contraseña?</a>
+            </div>
+        </div>
+
+        <div class="register-form" id="registerForm" style="display: none;">
+            <div class="logo">
+                <h1>Beat Venta</h1>
+            </div>
+            <h2>Crear Cuenta</h2>
+            <p>Únete a Beat Venta y accede a beats exclusivos</p>
+
+            <form id="registerFormElement">
+                <div class="form-group">
+                    <label for="regName">Nombre completo</label>
+                    <input type="text" id="regName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Correo electrónico</label>
+                    <input type="email" id="regEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Contraseña</label>
+                    <div class="password-container">
+                        <input type="password" id="regPassword" name="password" required>
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('regPassword')">
+                            <svg class="eye-icon" viewBox="0 0 24 24">
+                                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="regConfirmPassword">Confirmar contraseña</label>
+                    <div class="password-container">
+                        <input type="password" id="regConfirmPassword" name="confirmPassword" required>
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('regConfirmPassword')">
+                            <svg class="eye-icon" viewBox="0 0 24 24">
+                                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Crear Cuenta</button>
+            </form>
+
+            <div class="divider">
+                <span>o</span>
+            </div>
+
+            <div id="google-register-button"></div>
+
+            <div class="links">
+                <a href="#" onclick="showLogin()">¿Ya tienes cuenta? Inicia sesión</a>
+            </div>
+        </div>
+    </div>
+    <script src="login.js"></script>
+</body>
+</html>
