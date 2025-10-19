@@ -24,8 +24,8 @@ def google_auth():
     return jsonify({'success': False, 'message': 'Token inválido'}), 400
 
 # Configuración de PayPal (Sandbox)
-PAYPAL_CLIENT_ID = 'TU_CLIENT_ID_SANDBOX'  # Reemplaza con tu Client ID real
-PAYPAL_CLIENT_SECRET = 'TU_CLIENT_SECRET_SANDBOX'  # Reemplaza con tu Client Secret real
+PAYPAL_CLIENT_ID = 'AbJCNysCeJwZ2g-62JxkTlxIb3NwDEZJW7ZBctPmPRWtKa16bMOnzD_9Dn9eJ4PZ2cXUT8CS4D_nzLhB'  # Client ID real
+PAYPAL_CLIENT_SECRET = 'EHF7H-BJeoZtAAQzFG2NqWlZVfEOfS-UWDM_lgOCOgY_Fn0XnIxKjZd3m_VkeG0QaWMSQCIWRJEQ--Ys'  # Client Secret real
 PAYPAL_BASE_URL = 'https://api-m.sandbox.paypal.com'  # Cambia a https://api-m.paypal.com para producción
 
 def get_paypal_access_token():
