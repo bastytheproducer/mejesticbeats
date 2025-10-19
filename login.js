@@ -19,17 +19,42 @@ function showLogin() {
 }
 
 function loginWithGoogle() {
-    // Simulación de login con Google
-    alert('Redirigiendo a Google para iniciar sesión...');
-    // En una implementación real, usarías Google Sign-In API
-    // window.location.href = 'https://accounts.google.com/signin';
+    // Inicializar Google Sign-In
+    google.accounts.id.initialize({
+        client_id: '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com',
+        callback: handleCredentialResponse
+    });
+
+    // Mostrar el prompt de Google Sign-In
+    google.accounts.id.prompt();
 }
 
 function registerWithGoogle() {
-    // Simulación de registro con Google
-    alert('Redirigiendo a Google para registrarse...');
-    // En una implementación real, usarías Google Sign-In API
-    // window.location.href = 'https://accounts.google.com/signup';
+    // Para registro, usamos el mismo flujo que login
+    loginWithGoogle();
+}
+
+function handleCredentialResponse(response) {
+    // Decodificar el JWT token
+    const responsePayload = decodeJwtResponse(response.credential);
+
+    // Aquí puedes enviar el token a tu servidor para validación
+    // Por ahora, simulamos el login exitoso
+    console.log('Usuario autenticado:', responsePayload);
+
+    // Redirigir a la página de checkout
+    const selectedBeat = new URLSearchParams(window.location.search).get('beat');
+    window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
+}
+
+function decodeJwtResponse(token) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
 }
 
 function forgotPassword() {
