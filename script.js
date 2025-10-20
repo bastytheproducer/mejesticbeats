@@ -5,6 +5,7 @@ const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
 const progressBar = document.getElementById('progress-bar');
 const volumeBar = document.getElementById('volume-bar');
+const muteBtn = document.getElementById('mute-btn');
 const currentTimeEl = document.getElementById('current-time');
 const durationEl = document.getElementById('duration');
 const currentTitle = document.getElementById('current-title');
@@ -12,6 +13,9 @@ const currentGenre = document.getElementById('current-genre');
 const currentArt = document.getElementById('current-art');
 const waveformCanvas = document.getElementById('waveform-canvas');
 const waveformContainer = document.getElementById('waveform-container');
+
+let isMuted = false;
+let previousVolume = 1;
 
 let canvasContext = waveformCanvas.getContext('2d');
 let audioBuffer = null;
@@ -218,6 +222,27 @@ progressBar.addEventListener('input', (e) => {
 
 volumeBar.addEventListener('input', (e) => {
     audioPlayer.volume = e.target.value;
+    if (audioPlayer.volume > 0 && isMuted) {
+        isMuted = false;
+        muteBtn.textContent = '🔊';
+    }
+});
+
+muteBtn.addEventListener('click', () => {
+    if (isMuted) {
+        // Unmute
+        audioPlayer.volume = previousVolume;
+        volumeBar.value = previousVolume;
+        muteBtn.textContent = '🔊';
+        isMuted = false;
+    } else {
+        // Mute
+        previousVolume = audioPlayer.volume;
+        audioPlayer.volume = 0;
+        volumeBar.value = 0;
+        muteBtn.textContent = '🔇';
+        isMuted = true;
+    }
 });
 
 document.querySelectorAll('.play-btn').forEach((btn, index) => {
