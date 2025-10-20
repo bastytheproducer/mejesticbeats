@@ -237,5 +237,53 @@ document.getElementById('buy-current-btn').addEventListener('click', buyCurrentB
 // Event listener para clicks en la waveform
 waveformContainer.addEventListener('click', setWaveformProgress);
 
+// Event listener para mouse move en la waveform para mostrar preview
+waveformContainer.addEventListener('mousemove', (e) => {
+    const rect = waveformContainer.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const duration = audioPlayer.duration;
+    const hoverTime = (clickX / width) * duration;
+
+    // Mostrar tooltip con el tiempo
+    showWaveformTooltip(e, formatTime(hoverTime));
+});
+
+// Event listener para mouse leave en la waveform
+waveformContainer.addEventListener('mouseleave', () => {
+    hideWaveformTooltip();
+});
+
+// Función para mostrar tooltip en la waveform
+function showWaveformTooltip(e, timeString) {
+    let tooltip = document.getElementById('waveform-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'waveform-tooltip';
+        tooltip.style.position = 'absolute';
+        tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+        tooltip.style.color = '#fff';
+        tooltip.style.padding = '4px 8px';
+        tooltip.style.borderRadius = '4px';
+        tooltip.style.fontSize = '12px';
+        tooltip.style.pointerEvents = 'none';
+        tooltip.style.zIndex = '1000';
+        document.body.appendChild(tooltip);
+    }
+
+    tooltip.textContent = timeString;
+    tooltip.style.left = e.pageX + 10 + 'px';
+    tooltip.style.top = e.pageY - 30 + 'px';
+    tooltip.style.display = 'block';
+}
+
+// Función para ocultar tooltip
+function hideWaveformTooltip() {
+    const tooltip = document.getElementById('waveform-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+}
+
 // Cargar la primera pista al inicio
 loadTrack(currentTrackIndex);
