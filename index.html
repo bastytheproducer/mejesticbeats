@@ -109,13 +109,17 @@
                 </div>
                 <div class="progress-container">
                     <span id="current-time">0:00</span>
-                    <input type="range" id="progress-bar" value="0" max="100">
+                    <div id="waveform-container">
+                        <canvas id="waveform-canvas" width="600" height="60"></canvas>
+                        <div id="progress-overlay"></div>
+                    </div>
                     <span id="duration">0:00</span>
                 </div>
                 <div class="player-controls">
                     <button id="prev-btn">⏮</button>
                     <button id="play-pause-btn">▶</button>
                     <button id="next-btn">⏭</button>
+                    <button id="buy-current-btn" class="buy-btn">Comprar Este Beat</button>
                 </div>
                 <audio id="audio-player"></audio>
             </div>
