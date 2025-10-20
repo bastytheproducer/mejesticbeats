@@ -22,38 +22,38 @@ const tracks = [
     {
         title: 'Beat Verano Reggaeton',
         genre: 'Reggaeton',
-        src: 'BEATS/BEAT VERANO REGGEATON.mp3',
-        art: 'Caratulas de lo beats/beat verano reggeaton.png'
+        src: 'BEATS/BEAT%20VERANO%20REGGEATON.mp3',
+        art: 'Caratulas%20de%20lo%20beats/beat%20verano%20reggeaton.png'
     },
     {
         title: 'Beat 2025 Verano Trap',
         genre: 'Trap',
-        src: 'BEATS/BEAT 2025 VERANO TRAP HOUSE.mp3',
-        art: 'Caratulas de lo beats/Beat 2025 verano trap.png'
+        src: 'BEATS/BEAT%202025%20VERANO%20TRAP%20HOUSE.mp3',
+        art: 'Caratulas%20de%20lo%20beats/Beat%202025%20verano%20trap.png'
     },
     {
         title: 'Beat Rellax Reggaeton',
         genre: 'Reggaeton Relax',
-        src: 'BEATS/BEAT RELLAX REGGEATON.mp3',
-        art: 'Caratulas de lo beats/beat rellax reggeaton.png'
+        src: 'BEATS/BEAT%20RELLAX%20REGGEATON.mp3',
+        art: 'Caratulas%20de%20lo%20beats/beat%20rellax%20reggeaton.png'
     },
     {
         title: 'Beat Hip Hop Piano Gigant',
         genre: 'Hip Hop',
-        src: 'BEATS/BEAT HIP HOP PIANO GIGANT.mp3',
-        art: 'Caratulas de lo beats/beat hip hop piano gigant.jpg'
+        src: 'BEATS/BEAT%20HIP%20HOP%20PIANO%20GIGANT.mp3',
+        art: 'Caratulas%20de%20lo%20beats/beat%20hip%20hop%20piano%20gigant.jpg'
     },
     {
         title: 'Beat Sin Frontera',
         genre: 'Instrumental',
-        src: 'BEATS/BEAT SIN FRONTERA.mp3',
-        art: 'Caratulas de lo beats/beat sin frontera.png'
+        src: 'BEATS/BEAT%20SIN%20FRONTERA.mp3',
+        art: 'Caratulas%20de%20lo%20beats/beat%20sin%20frontera.png'
     },
     {
         title: 'Beat Trap Navideño Chilling',
         genre: 'Trap Navideño',
-        src: 'BEATS/BEAT TRAP NAVIDEÑO CHILLING.mp3',
-        art: 'Caratulas de lo beats/beat trap navideño chilling.png'
+        src: 'BEATS/BEAT%20TRAP%20NAVIDEÑO%20CHILLING.mp3',
+        art: 'Caratulas%20de%20lo%20beats/beat%20trap%20navideño%20chilling.png'
     }
 ];
 
