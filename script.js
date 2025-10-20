@@ -90,6 +90,14 @@ function updateProgress() {
     currentTimeEl.textContent = formatTime(currentTime);
     durationEl.textContent = formatTime(duration);
 
+    // Update custom progress bar
+    const progressFill = document.querySelector('.progress-fill');
+    const progressThumb = document.querySelector('.progress-thumb');
+    if (progressFill && progressThumb) {
+        progressFill.style.width = progressPercent + '%';
+        progressThumb.style.left = progressPercent + '%';
+    }
+
     // Update waveform with progress
     if (duration > 0) {
         drawWaveform(progressPercent);
@@ -219,6 +227,18 @@ progressBar.addEventListener('input', (e) => {
     const duration = audioPlayer.duration;
     audioPlayer.currentTime = (e.target.value / 100) * duration;
 });
+
+// Custom progress bar click handler
+const customProgressBar = document.querySelector('.progress-bar');
+if (customProgressBar) {
+    customProgressBar.addEventListener('click', (e) => {
+        const rect = customProgressBar.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const width = rect.width;
+        const duration = audioPlayer.duration;
+        audioPlayer.currentTime = (clickX / width) * duration;
+    });
+}
 
 volumeBar.addEventListener('input', (e) => {
     audioPlayer.volume = e.target.value;
