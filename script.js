@@ -9,7 +9,6 @@ const currentTitle = document.getElementById('current-title');
 const currentGenre = document.getElementById('current-genre');
 const currentArt = document.getElementById('current-art');
 const waveformCanvas = document.getElementById('waveform-canvas');
-const progressOverlay = document.getElementById('progress-overlay');
 const waveformContainer = document.getElementById('waveform-container');
 
 let canvasContext = waveformCanvas.getContext('2d');
@@ -85,9 +84,9 @@ function updateProgress() {
     currentTimeEl.textContent = formatTime(currentTime);
     durationEl.textContent = formatTime(duration);
 
-    // Update waveform progress overlay
+    // Update waveform with progress
     if (duration > 0) {
-        progressOverlay.style.width = progressPercent + '%';
+        drawWaveform(progressPercent);
     }
 }
 
@@ -130,7 +129,7 @@ function generateWaveform(audioBuffer) {
     drawWaveform();
 }
 
-function drawWaveform() {
+function drawWaveform(progressPercent = 0) {
     const canvas = waveformCanvas;
     const ctx = canvasContext;
     const width = canvas.width;
@@ -140,13 +139,15 @@ function drawWaveform() {
 
     const barWidth = width / waveformData.length;
     const maxAmplitude = Math.max(...waveformData);
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    const progressIndex = Math.floor((progressPercent / 100) * waveformData.length);
 
     waveformData.forEach((amplitude, index) => {
         const barHeight = (amplitude / maxAmplitude) * height * 0.8;
         const x = index * barWidth;
         const y = (height - barHeight) / 2;
+
+        // Color based on progress: green for played, white for unplayed
+        ctx.fillStyle = index < progressIndex ? '#4ecdc4' : 'rgba(255, 255, 255, 0.3)';
 
         ctx.fillRect(x, y, barWidth - 1, barHeight);
     });
