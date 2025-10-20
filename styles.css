@@ -26,6 +26,7 @@ header h1 {
     font-size: 3rem;
     margin-bottom: 10px;
     background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
