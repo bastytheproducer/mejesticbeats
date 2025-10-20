@@ -1,8 +1,10 @@
+// @ts-nocheck
 const audioPlayer = document.getElementById('audio-player');
 const playPauseBtn = document.getElementById('play-pause-btn');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
 const progressBar = document.getElementById('progress-bar');
+const volumeBar = document.getElementById('volume-bar');
 const currentTimeEl = document.getElementById('current-time');
 const durationEl = document.getElementById('duration');
 const currentTitle = document.getElementById('current-title');
@@ -212,6 +214,10 @@ audioPlayer.addEventListener('loadedmetadata', () => {
 progressBar.addEventListener('input', (e) => {
     const duration = audioPlayer.duration;
     audioPlayer.currentTime = (e.target.value / 100) * duration;
+});
+
+volumeBar.addEventListener('input', (e) => {
+    audioPlayer.volume = e.target.value;
 });
 
 document.querySelectorAll('.play-btn').forEach((btn, index) => {

@@ -1,4 +1,6 @@
-- [x] Update .player styles in styles.css to match checkout-form styling (border-radius, padding, box-shadow, animation)
-- [x] Add @keyframes fadeIn to styles.css
-- [x] Change tracks src in script.js to relative paths without leading /
-- [x] Test the changes by running the server and checking the page (server started successfully, browser tool disabled but changes are applied)
+- [ ] Agregar barra de progreso (scrubber) debajo de la forma de onda en index.html
+- [ ] Agregar control de volumen estilo Apple en player-controls en index.html
+- [ ] Implementar funcionalidad de scrubbing en script.js
+- [ ] Implementar control de volumen en script.js
+- [ ] Estilizar barra de progreso y control de volumen en styles.css para que coincida con el estilo Apple
+- [ ] Probar los cambios corriendo el servidor y verificando la navegación y volumen
