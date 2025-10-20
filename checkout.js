@@ -64,9 +64,6 @@ function handlePaymentMethodChange() {
         cardFields.style.display = 'none';
         paypalContainer.style.display = 'block';
         initializePayPalButtons();
-    } else {
-        cardFields.style.display = 'none';
-        paypalContainer.style.display = 'none';
     }
 }
 
@@ -209,13 +206,22 @@ function initializePayPalButtons() {
                     return response.json();
                 })
                 .then(function(details) {
+                    console.log('Pago completado:', details);
                     // Redirigir a página de éxito
                     window.location.href = 'success.html?beat=' + encodeURIComponent(selectedBeat) + '&txn=' + details.id;
+                })
+                .catch(function(err) {
+                    console.error('Error en onApprove:', err);
+                    alert('Error al procesar el pago con PayPal. Inténtalo de nuevo.');
                 });
             },
             onError: function(err) {
                 console.error('Error en PayPal:', err);
                 alert('Error al procesar el pago con PayPal. Inténtalo de nuevo.');
+            },
+            onCancel: function(data) {
+                console.log('Pago cancelado por el usuario:', data);
+                alert('Pago cancelado. Puedes intentarlo de nuevo.');
             }
         }).render('#paypal-button-container');
     } else {

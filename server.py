@@ -15,6 +15,10 @@ def index():
 def serve_file(filename):
     return send_from_directory('.', filename)
 
+@app.route('/success.html')
+def success_page():
+    return send_from_directory('.', 'success.html')
+
 @app.route('/api/auth/google', methods=['POST'])
 def google_auth():
     data = request.get_json()
@@ -48,9 +52,12 @@ def create_paypal_order():
     try:
         data = request.get_json()
         beat_name = data.get('beat_name', 'Beat')
-        amount = data.get('amount', '20.00')  # Monto por defecto
+        amount = f"{float(data.get('amount', '20.00')):.2f}"  # Formatear a dos decimales
+
+        print(f"Creando orden PayPal: {beat_name} - ${amount}")
 
         access_token = get_paypal_access_token()
+        print("Access token obtenido correctamente")
 
         url = f"{PAYPAL_BASE_URL}/v2/checkout/orders"
         headers = {
@@ -73,13 +80,26 @@ def create_paypal_order():
             }
         }
 
+        print(f"Enviando orden a PayPal: {order_data}")
         response = requests.post(url, headers=headers, data=json.dumps(order_data))
+        print(f"Respuesta PayPal: {response.status_code}")
+
+        if response.status_code != 201:
+            print(f"Error PayPal: {response.text}")
+            return jsonify({'error': 'Error al procesar el pago con PayPal. Inténtalo de nuevo.'}), 500
+
         response.raise_for_status()
+        order_response = response.json()
+        print(f"Orden creada: {order_response.get('id')}")
 
-        return jsonify(response.json())
+        return jsonify(order_response)
 
+    except requests.exceptions.RequestException as e:
+        print(f"Request error: {str(e)}")
+        return jsonify({'error': 'Error al procesar el pago con PayPal. Inténtalo de nuevo.'}), 500
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"General error: {str(e)}")
+        return jsonify({'error': 'Error al procesar el pago con PayPal. Inténtalo de nuevo.'}), 500
 
 @app.route('/api/paypal/capture-order/<order_id>', methods=['POST'])
 def capture_paypal_order(order_id):
@@ -99,9 +119,33 @@ def capture_paypal_order(order_id):
         return jsonify(response.json())
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error en captura: {str(e)}")
+        return jsonify({'error': 'Error al procesar el pago con PayPal. Inténtalo de nuevo.'}), 500
 
+@app.route('/api/download/<transaction_id>')
+def download_beat(transaction_id):
+    """Descargar beat después de pago exitoso"""
+    # En producción, verificaría que la transacción existe y es válida
+    # Por ahora, simulamos descarga basada en el transaction_id
 
+    # Mapear nombres de beats a archivos reales
+    beat_mapping = {
+        'Beat Verano Reggaeton': 'BEATS/BEAT VERANO REGGEATON.mp3',
+        'Beat 2025 Verano Trap': 'BEATS/BEAT 2025 VERANO TRAP HOUSE.mp3',
+        'Beat Rellax Reggaeton': 'BEATS/BEAT RELLAX REGGEATON.mp3',
+        'Beat Hip Hop Piano Gigant': 'BEATS/BEAT HIP HOP PIANO GIGANT.mp3',
+        'Beat Sin Frontera': 'BEATS/BEAT SIN FRONTERA.mp3',
+        'Beat Trap Navideño Chilling': 'BEATS/BEAT TRAP NAVIDEÑO CHILLING.mp3'
+    }
+
+    # Obtener beat desde parámetros de URL
+    beat_name = request.args.get('beat', 'Beat Verano Reggaeton')
+    beat_file = beat_mapping.get(beat_name, 'BEATS/BEAT VERANO REGGEATON.mp3')
+
+    if os.path.exists(beat_file):
+        return send_from_directory('.', beat_file, as_attachment=True, download_name=f"{beat_name}.mp3")
+    else:
+        return jsonify({'error': 'Beat no encontrado'}), 404
 
 if __name__ == '__main__':
     # Para desarrollo local con HTTPS y certificados de confianza

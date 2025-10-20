@@ -125,13 +125,25 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
-    // Simulación de login
-    if (email && password) {
-        // Redirigir a la página de checkout
-        window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
-    } else {
+    // Validación básica
+    if (!email || !password) {
         alert('Por favor, completa todos los campos.');
+        return;
     }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        alert('Por favor, ingresa un email válido.');
+        return;
+    }
+
+    if (password.length < 6) {
+        alert('La contraseña debe tener al menos 6 caracteres.');
+        return;
+    }
+
+    // Simulación de login exitoso
+    alert('Login exitoso! Redirigiendo al checkout...');
+    window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
 });
 
 // Manejar el formulario de registro
