@@ -20,38 +20,38 @@ const tracks = [
     {
         title: 'Beat Verano Reggaeton',
         genre: 'Reggaeton',
-        src: '/BEATS/BEAT VERANO REGGEATON.mp3',
-        art: '/Caratulas de lo beats/beat verano reggeaton.png'
+        src: 'BEATS/BEAT VERANO REGGEATON.mp3',
+        art: 'Caratulas de lo beats/beat verano reggeaton.png'
     },
     {
         title: 'Beat 2025 Verano Trap',
         genre: 'Trap',
-        src: '/BEATS/BEAT 2025 VERANO TRAP HOUSE.mp3',
-        art: '/Caratulas de lo beats/Beat 2025 verano trap.png'
+        src: 'BEATS/BEAT 2025 VERANO TRAP HOUSE.mp3',
+        art: 'Caratulas de lo beats/Beat 2025 verano trap.png'
     },
     {
         title: 'Beat Rellax Reggaeton',
         genre: 'Reggaeton Relax',
-        src: '/BEATS/BEAT RELLAX REGGEATON.mp3',
-        art: '/Caratulas de lo beats/beat rellax reggeaton.png'
+        src: 'BEATS/BEAT RELLAX REGGEATON.mp3',
+        art: 'Caratulas de lo beats/beat rellax reggeaton.png'
     },
     {
         title: 'Beat Hip Hop Piano Gigant',
         genre: 'Hip Hop',
-        src: '/BEATS/BEAT HIP HOP PIANO GIGANT.mp3',
-        art: '/Caratulas de lo beats/beat hip hop piano gigant.jpg'
+        src: 'BEATS/BEAT HIP HOP PIANO GIGANT.mp3',
+        art: 'Caratulas de lo beats/beat hip hop piano gigant.jpg'
     },
     {
         title: 'Beat Sin Frontera',
         genre: 'Instrumental',
-        src: '/BEATS/BEAT SIN FRONTERA.mp3',
-        art: '/Caratulas de lo beats/beat sin frontera.png'
+        src: 'BEATS/BEAT SIN FRONTERA.mp3',
+        art: 'Caratulas de lo beats/beat sin frontera.png'
     },
     {
         title: 'Beat Trap Navideño Chilling',
         genre: 'Trap Navideño',
-        src: '/BEATS/BEAT TRAP NAVIDEÑO CHILLING.mp3',
-        art: '/Caratulas de lo beats/beat trap navideño chilling.png'
+        src: 'BEATS/BEAT TRAP NAVIDEÑO CHILLING.mp3',
+        art: 'Caratulas de lo beats/beat trap navideño chilling.png'
     }
 ];
 
