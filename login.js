@@ -159,12 +159,19 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Login exitoso! Redirigiendo al checkout...');
             // Guardar token JWT en localStorage
             if (data.token) {
                 localStorage.setItem('auth_token', data.token);
             }
-            window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
+
+            // Verificar si es clave temporal
+            if (data.redirect_to === 'change_password.html') {
+                alert('Has iniciado sesión con una clave temporal. Debes cambiar tu contraseña.');
+                window.location.href = 'change_password.html';
+            } else {
+                alert('Login exitoso! Redirigiendo al checkout...');
+                window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
+            }
         } else {
             alert('Error: ' + data.message);
         }

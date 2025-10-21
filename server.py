@@ -156,21 +156,40 @@ def login():
 
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
-    c.execute('SELECT id, name, password_hash FROM users WHERE email = ?', (email,))
+    c.execute('SELECT id, name, password_hash, reset_token FROM users WHERE email = ?', (email,))
     user = c.fetchone()
     conn.close()
 
-    if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
-        # Generar JWT token
-        token_payload = {
-            'user_id': user[0],
-            'email': email,
-            'name': user[1],
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
-        }
-        token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm='HS256')
-
-        return jsonify({'success': True, 'message': 'Inicio de sesión exitoso', 'token': token, 'user': {'id': user[0], 'name': user[1], 'email': email}})
+    if user:
+        # Verificar si es una clave temporal
+        if user[3] and user[3] == password:
+            # Es una clave temporal, redirigir a cambio de contraseña
+            token_payload = {
+                'user_id': user[0],
+                'email': email,
+                'name': user[1],
+                'temp_password': True,
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+            }
+            token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm='HS256')
+            return jsonify({
+                'success': True,
+                'message': 'Clave temporal detectada. Redirigiendo a cambio de contraseña.',
+                'token': token,
+                'redirect_to': 'change_password.html'
+            }), 200
+        elif bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
+            # Contraseña normal correcta
+            token_payload = {
+                'user_id': user[0],
+                'email': email,
+                'name': user[1],
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+            }
+            token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm='HS256')
+            return jsonify({'success': True, 'message': 'Inicio de sesión exitoso', 'token': token, 'user': {'id': user[0], 'name': user[1], 'email': email}})
+        else:
+            return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
     else:
         return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
 
@@ -418,6 +437,40 @@ def reset_password():
     conn.close()
 
     return jsonify({'success': True, 'message': 'Contraseña restablecida exitosamente'}), 200
+
+@app.route('/api/change_password', methods=['POST'])
+def change_password():
+    """Cambiar contraseña para usuarios con clave temporal"""
+    # Verificar autenticación
+    user = verify_token()
+    if not user:
+        return jsonify({'success': False, 'message': 'Autenticación requerida'}), 401
+
+    # Verificar que sea un usuario con clave temporal
+    if not user.get('temp_password'):
+        return jsonify({'success': False, 'message': 'Esta función es solo para usuarios con clave temporal'}), 403
+
+    data = request.get_json()
+    new_password = data.get('new_password')
+
+    if not new_password:
+        return jsonify({'success': False, 'message': 'Nueva contraseña requerida'}), 400
+
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres'}), 400
+
+    # Hash de la nueva contraseña
+    password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+
+    # Actualizar contraseña y limpiar token temporal
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?',
+              (password_hash.decode('utf-8'), user['user_id']))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': 'Contraseña cambiada exitosamente'}), 200
 
 @app.route('/api/download/<transaction_id>')
 def download_beat(transaction_id):
