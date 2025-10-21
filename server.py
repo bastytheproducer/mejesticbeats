@@ -117,104 +117,15 @@ def login():
     else:
         return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
 
-# Configuración de PayPal (Sandbox)
-PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'AbJCNysCeJwZ2g-62JxkTlxIb3NwDEZJW7ZBctPmPRWtKa16bMOnzD_9Dn9eJ4PZ2cXUT8CS4D_nzLhB')  # Client ID real
-PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', 'EHF7H-BJeoZtAAQzFG2NqWlZVfEOfS-UWDM_lgOCOgY_Fn0XnIxKjZd3m_VkeG0QaWMSQCIWRJEQ--Ys')  # Client Secret real
-PAYPAL_BASE_URL = 'https://api-m.sandbox.paypal.com'  # Cambia a https://api-m.paypal.com para producción
-
 # Configuración de Google OAuth
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '****VaJN')
 
-def get_paypal_access_token():
-    """Obtener access token de PayPal"""
-    url = f"{PAYPAL_BASE_URL}/v1/oauth2/token"
-    headers = {
-        'Accept': 'application/json',
-        'Accept-Language': 'en_US',
-    }
-    data = {
-        'grant_type': 'client_credentials'
-    }
-    response = requests.post(url, headers=headers, data=data, auth=(PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET))
-    response.raise_for_status()
-    return response.json()['access_token']
 
-@app.route('/api/paypal/create-order', methods=['POST'])
-def create_paypal_order():
-    """Crear una orden de PayPal"""
-    try:
-        data = request.get_json()
-        beat_name = data.get('beat_name', 'Beat')
-        amount = f"{float(data.get('amount', '20.00')):.2f}"  # Formatear a dos decimales
 
-        print(f"Creando orden PayPal: {beat_name} - ${amount}")
 
-        access_token = get_paypal_access_token()
-        print("Access token obtenido correctamente")
 
-        url = f"{PAYPAL_BASE_URL}/v2/checkout/orders"
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {access_token}'
-        }
 
-        order_data = {
-            'intent': 'CAPTURE',
-            'purchase_units': [{
-                'amount': {
-                    'currency_code': 'USD',
-                    'value': amount
-                },
-                'description': f'Compra de beat: {beat_name}'
-            }],
-            'application_context': {
-                'return_url': f'{oauth_url}/success.html',
-                'cancel_url': f'{oauth_url}/checkout.html'
-            }
-        }
-
-        print(f"Enviando orden a PayPal: {order_data}")
-        response = requests.post(url, headers=headers, data=json.dumps(order_data))
-        print(f"Respuesta PayPal: {response.status_code}")
-
-        if response.status_code != 201:
-            print(f"Error PayPal: {response.text}")
-            return jsonify({'error': 'Error al procesar el pago con PayPal. Inténtalo de nuevo.'}), 500
-
-        response.raise_for_status()
-        order_response = response.json()
-        print(f"Orden creada: {order_response.get('id')}")
-
-        return jsonify(order_response)
-
-    except requests.exceptions.RequestException as e:
-        print(f"Request error: {str(e)}")
-        return jsonify({'error': 'Error al procesar el pago con PayPal. Inténtalo de nuevo.'}), 500
-    except Exception as e:
-        print(f"General error: {str(e)}")
-        return jsonify({'error': 'Error al procesar el pago con PayPal. Inténtalo de nuevo.'}), 500
-
-@app.route('/api/paypal/capture-order/<order_id>', methods=['POST'])
-def capture_paypal_order(order_id):
-    """Capturar el pago de una orden de PayPal"""
-    try:
-        access_token = get_paypal_access_token()
-
-        url = f"{PAYPAL_BASE_URL}/v2/checkout/orders/{order_id}/capture"
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {access_token}'
-        }
-
-        response = requests.post(url, headers=headers)
-        response.raise_for_status()
-
-        return jsonify(response.json())
-
-    except Exception as e:
-        print(f"Error en captura: {str(e)}")
-        return jsonify({'error': 'Error al procesar el pago con PayPal. Inténtalo de nuevo.'}), 500
 
 @app.route('/api/download/<transaction_id>')
 def download_beat(transaction_id):
@@ -254,7 +165,7 @@ if __name__ == '__main__':
         oauth_url = "https://localhost:5000"
     else:
         # Para despliegue en la nube, la URL se debe configurar manualmente
-        oauth_url = os.environ.get('OAUTH_URL', f'http://localhost:{port}')
+        oauth_url = os.environ.get('OAUTH_URL', 'https://web-production-f58b3.up.railway.app')
 
     print(f"🌐 URL para Google OAuth: {oauth_url}")
     print("📝 Agrega esta URL a los orígenes autorizados en Google Cloud Console")

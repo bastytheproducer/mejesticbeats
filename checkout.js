@@ -55,15 +55,9 @@ function loadBeatInfo() {
 function handlePaymentMethodChange() {
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
     const cardFields = document.getElementById('cardFields');
-    const paypalContainer = document.getElementById('paypal-button-container');
 
     if (paymentMethod === 'card') {
         cardFields.style.display = 'block';
-        paypalContainer.style.display = 'none';
-    } else if (paymentMethod === 'paypal') {
-        cardFields.style.display = 'none';
-        paypalContainer.style.display = 'block';
-        initializePayPalButtons();
     }
 }
 
@@ -168,66 +162,7 @@ document.getElementById('paymentForm').addEventListener('submit', async function
     }
 });
 
-// Inicializar PayPal Buttons
-function initializePayPalButtons() {
-    // Limpiar contenedor antes de renderizar
-    const container = document.getElementById('paypal-button-container');
-    container.innerHTML = '';
 
-    if (typeof paypal !== 'undefined') {
-        paypal.Buttons({
-            createOrder: function(data, actions) {
-                // Obtener precio del beat
-                const beatPrice = document.getElementById('beat-price').textContent.replace('$', '');
-                const beatName = document.getElementById('beat-title').textContent;
-
-                return fetch('/api/paypal/create-order', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        beat_name: beatName,
-                        amount: beatPrice
-                    })
-                })
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(order) {
-                    return order.id;
-                });
-            },
-            onApprove: function(data, actions) {
-                return fetch('/api/paypal/capture-order/' + data.orderID, {
-                    method: 'POST'
-                })
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(details) {
-                    console.log('Pago completado:', details);
-                    // Redirigir a página de éxito
-                    window.location.href = 'success.html?beat=' + encodeURIComponent(selectedBeat) + '&txn=' + details.id;
-                })
-                .catch(function(err) {
-                    console.error('Error en onApprove:', err);
-                    alert('Error al procesar el pago con PayPal. Inténtalo de nuevo.');
-                });
-            },
-            onError: function(err) {
-                console.error('Error en PayPal:', err);
-                alert('Error al procesar el pago con PayPal. Inténtalo de nuevo.');
-            },
-            onCancel: function(data) {
-                console.log('Pago cancelado por el usuario:', data);
-                alert('Pago cancelado. Puedes intentarlo de nuevo.');
-            }
-        }).render('#paypal-button-container');
-    } else {
-        console.error('PayPal SDK no está cargado');
-    }
-}
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {

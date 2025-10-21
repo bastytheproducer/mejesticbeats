@@ -9,3 +9,9 @@
 - [x] Test registration and login functionality
 - [ ] Verify Google OAuth works after adding authorized origin
 - [ ] Ensure HTTPS certificate is trusted for OAuth
+- [x] Remove PayPal payment method from server.py
+- [x] Remove PayPal elements from checkout.html
+- [x] Remove PayPal logic from checkout.js
+- [x] Update _headers to remove PayPal from CSP
+- [ ] Test card payment functionality after PayPal removal
+- [ ] Configure Google OAuth for Railway deployment
