@@ -34,7 +34,7 @@
 - [x] Modify checkout.html to include Mercado Pago SDK script and checkout container
 - [x] Update checkout.js to initialize embedded checkout instead of redirect
 - [ ] Test embedded checkout functionality
-- [ ] Update GitHub repository with changes
+- [x] Update GitHub repository with changes
 - [x] Add JWT authentication (PyJWT)
 - [x] Generate JWT tokens on login/register in server.py
 - [x] Store JWT in localStorage in login.js
