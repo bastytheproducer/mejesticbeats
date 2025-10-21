@@ -39,10 +39,34 @@ def success_page():
 @app.route('/api/auth/google', methods=['POST'])
 def google_auth():
     data = request.get_json()
-    # Simular validación de token de Google
-    if data and 'credential' in data:
-        return jsonify({'success': True, 'message': 'Autenticación exitosa'})
-    return jsonify({'success': False, 'message': 'Token inválido'}), 400
+    if not data or 'credential' not in data:
+        return jsonify({'success': False, 'message': 'Token no proporcionado'}), 400
+
+    try:
+        # Verificar el token de Google
+        from google.auth import jwt
+        from google.auth.transport import requests as google_requests
+
+        # Decodificar el JWT sin verificar (para desarrollo; en producción, verifica con Google)
+        decoded = jwt.decode(data['credential'], options={"verify_signature": False})
+
+        # En producción, deberías verificar el token con Google
+        # Aquí simulamos validación básica
+        if decoded.get('iss') == 'https://accounts.google.com' and decoded.get('aud') == GOOGLE_CLIENT_ID:
+            return jsonify({
+                'success': True,
+                'message': 'Autenticación exitosa',
+                'user': {
+                    'name': decoded.get('name'),
+                    'email': decoded.get('email'),
+                    'picture': decoded.get('picture')
+                }
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Token inválido'}), 400
+    except Exception as e:
+        print(f"Error en autenticación Google: {str(e)}")
+        return jsonify({'success': False, 'message': 'Error en autenticación'}), 500
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -94,9 +118,13 @@ def login():
         return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
 
 # Configuración de PayPal (Sandbox)
-PAYPAL_CLIENT_ID = 'AbJCNysCeJwZ2g-62JxkTlxIb3NwDEZJW7ZBctPmPRWtKa16bMOnzD_9Dn9eJ4PZ2cXUT8CS4D_nzLhB'  # Client ID real
-PAYPAL_CLIENT_SECRET = 'EHF7H-BJeoZtAAQzFG2NqWlZVfEOfS-UWDM_lgOCOgY_Fn0XnIxKjZd3m_VkeG0QaWMSQCIWRJEQ--Ys'  # Client Secret real
+PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'AbJCNysCeJwZ2g-62JxkTlxIb3NwDEZJW7ZBctPmPRWtKa16bMOnzD_9Dn9eJ4PZ2cXUT8CS4D_nzLhB')  # Client ID real
+PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', 'EHF7H-BJeoZtAAQzFG2NqWlZVfEOfS-UWDM_lgOCOgY_Fn0XnIxKjZd3m_VkeG0QaWMSQCIWRJEQ--Ys')  # Client Secret real
 PAYPAL_BASE_URL = 'https://api-m.sandbox.paypal.com'  # Cambia a https://api-m.paypal.com para producción
+
+# Configuración de Google OAuth
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '****VaJN')
 
 def get_paypal_access_token():
     """Obtener access token de PayPal"""
@@ -141,8 +169,8 @@ def create_paypal_order():
                 'description': f'Compra de beat: {beat_name}'
             }],
             'application_context': {
-                'return_url': 'https://localhost:5000/success.html',
-                'cancel_url': 'https://localhost:5000/checkout.html'
+                'return_url': f'{oauth_url}/success.html',
+                'cancel_url': f'{oauth_url}/checkout.html'
             }
         }
 
