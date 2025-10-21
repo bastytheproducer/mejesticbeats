@@ -267,7 +267,7 @@ if __name__ == '__main__':
 
         # Instalar CA de mkcert
         try:
-            subprocess.run(['mkcert', '-install'], check=True, capture_output=True)
+            subprocess.run(['./mkcert', '-install'], check=True, capture_output=True)
             print("CA de mkcert instalado correctamente")
         except subprocess.CalledProcessError:
             print("Error instalando CA de mkcert - puedes ignorar si ya está instalado")
@@ -278,7 +278,7 @@ if __name__ == '__main__':
 
         if not os.path.exists(cert_file) or not os.path.exists(key_file):
             try:
-                subprocess.run(['mkcert', '-cert-file', cert_file, '-key-file', key_file, 'localhost', '127.0.0.1'], check=True, capture_output=True)
+                subprocess.run(['./mkcert', '-cert-file', cert_file, '-key-file', key_file, 'localhost', '127.0.0.1'], check=True, capture_output=True)
                 print("Certificados SSL generados correctamente")
             except subprocess.CalledProcessError:
                 print("Error generando certificados SSL - usando certificados existentes si están disponibles")

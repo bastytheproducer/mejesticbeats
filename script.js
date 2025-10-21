@@ -242,17 +242,24 @@ if (customProgressBar) {
 
 volumeBar.addEventListener('input', (e) => {
     audioPlayer.volume = e.target.value;
+    updateVolumeBar();
     if (audioPlayer.volume > 0 && isMuted) {
         isMuted = false;
         muteBtn.textContent = '🔊';
     }
 });
 
+function updateVolumeBar() {
+    const volumePercent = (audioPlayer.volume * 100) + '%';
+    volumeBar.style.setProperty('--value', volumePercent);
+}
+
 muteBtn.addEventListener('click', () => {
     if (isMuted) {
         // Unmute
         audioPlayer.volume = previousVolume;
         volumeBar.value = previousVolume;
+        updateVolumeBar();
         muteBtn.textContent = '🔊';
         isMuted = false;
     } else {
@@ -260,6 +267,7 @@ muteBtn.addEventListener('click', () => {
         previousVolume = audioPlayer.volume;
         audioPlayer.volume = 0;
         volumeBar.value = 0;
+        updateVolumeBar();
         muteBtn.textContent = '🔇';
         isMuted = true;
     }
