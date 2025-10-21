@@ -15,7 +15,14 @@ function showRegister() {
 
 function showLogin() {
     document.querySelector('.register-form').style.display = 'none';
+    document.querySelector('.forgot-password-form').style.display = 'none';
     document.querySelector('.login-form').style.display = 'block';
+}
+
+function showForgotPassword() {
+    document.querySelector('.login-form').style.display = 'none';
+    document.querySelector('.register-form').style.display = 'none';
+    document.querySelector('.forgot-password-form').style.display = 'block';
 }
 
 function initializeGoogleSignIn() {
@@ -118,9 +125,7 @@ function decodeJwtResponse(token) {
     return JSON.parse(jsonPayload);
 }
 
-function forgotPassword() {
-    alert('Funcionalidad de recuperación de contraseña próximamente.');
-}
+
 
 // Manejar el formulario de login
 document.getElementById('loginForm').addEventListener('submit', function(e) {
@@ -245,9 +250,50 @@ function togglePasswordVisibility(inputId) {
     }
 }
 
+// Manejar el formulario de recuperación de contraseña
+document.getElementById('forgotPasswordFormElement').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('forgotEmail').value;
+
+    if (!email) {
+        alert('Por favor, ingresa tu email.');
+        return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        alert('Por favor, ingresa un email válido.');
+        return;
+    }
+
+    // Enviar solicitud al servidor
+    fetch('/api/forgot_password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            email: email
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Si el email existe, recibirás instrucciones para recuperar tu contraseña.');
+            showLogin(); // Volver al login
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error al enviar solicitud de recuperación:', error);
+        alert('Error de conexión. Inténtalo de nuevo.');
+    });
+});
+
 // Animación de entrada
 document.addEventListener('DOMContentLoaded', function() {
-    const forms = document.querySelectorAll('.login-form, .register-form');
+    const forms = document.querySelectorAll('.login-form, .register-form, .forgot-password-form');
     forms.forEach(form => {
         form.style.opacity = '0';
         form.style.transform = 'translateY(20px)';

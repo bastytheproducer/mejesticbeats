@@ -9,6 +9,10 @@ import bcrypt
 import mercadopago
 import jwt
 import datetime
+import secrets
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__, static_folder='.')
 
@@ -37,7 +41,9 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   name TEXT NOT NULL,
                   email TEXT UNIQUE NOT NULL,
-                  password_hash TEXT NOT NULL)''')
+                  password_hash TEXT NOT NULL,
+                  reset_token TEXT,
+                  reset_token_expiry DATETIME)''')
     conn.commit()
     conn.close()
 
@@ -194,6 +200,13 @@ sdk = mercadopago.SDK(MERCADO_PAGO_ACCESS_TOKEN)
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '****VaJN')
 
+# Configuración de email para recuperación de contraseña
+SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+SMTP_USERNAME = os.environ.get('SMTP_USERNAME', 'tu-email@gmail.com')
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', 'tu-contraseña-app')
+FROM_EMAIL = os.environ.get('FROM_EMAIL', 'tu-email@gmail.com')
+
 @app.route('/api/create_preference', methods=['POST'])
 def create_preference():
     """Crear preferencia de pago para Mercado Pago"""
@@ -284,6 +297,115 @@ def payment_notification():
                 return jsonify({'status': 'error', 'message': 'Error processing payment'}), 500
 
     return jsonify({'status': 'ok'}), 200
+
+def send_reset_email(email, reset_token):
+    """Enviar email con clave temporal para recuperación de contraseña"""
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = FROM_EMAIL
+        msg['To'] = email
+        msg['Subject'] = 'Recuperación de Contraseña - Majestic Beats'
+
+        body = f"""
+        Hola,
+
+        Has solicitado recuperar tu contraseña en Majestic Beats.
+
+        Tu clave temporal es: {reset_token}
+
+        Esta clave es válida por 1 hora. Por favor, ingrésala en la página de restablecimiento de contraseña junto con tu nueva contraseña.
+
+        Si no solicitaste este cambio, ignora este mensaje.
+
+        Saludos,
+        El equipo de Majestic Beats
+        """
+
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        text = msg.as_string()
+        server.sendmail(FROM_EMAIL, email, text)
+        server.quit()
+
+        return True
+    except Exception as e:
+        print(f"Error enviando email: {str(e)}")
+        return False
+
+@app.route('/api/forgot_password', methods=['POST'])
+def forgot_password():
+    """Solicitar recuperación de contraseña"""
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({'success': False, 'message': 'Email es requerido'}), 400
+
+    # Verificar si el usuario existe
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT id FROM users WHERE email = ?', (email,))
+    user = c.fetchone()
+
+    if not user:
+        # No revelar si el email existe o no por seguridad
+        return jsonify({'success': True, 'message': 'Si el email existe, recibirás instrucciones para recuperar tu contraseña'}), 200
+
+    # Generar clave temporal única de 9 caracteres
+    reset_token = secrets.token_urlsafe(6)[:9]  # Genera al menos 9 caracteres seguros
+
+    # Establecer expiración en 1 hora
+    expiry = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+
+    # Guardar token en la base de datos
+    c.execute('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?',
+              (reset_token, expiry, email))
+    conn.commit()
+    conn.close()
+
+    # Enviar email
+    if send_reset_email(email, reset_token):
+        return jsonify({'success': True, 'message': 'Si el email existe, recibirás instrucciones para recuperar tu contraseña'}), 200
+    else:
+        return jsonify({'success': False, 'message': 'Error enviando email. Inténtalo de nuevo más tarde'}), 500
+
+@app.route('/api/reset_password', methods=['POST'])
+def reset_password():
+    """Restablecer contraseña usando clave temporal"""
+    data = request.get_json()
+    temp_password = data.get('temp_password')
+    new_password = data.get('new_password')
+
+    if not temp_password or not new_password:
+        return jsonify({'success': False, 'message': 'Clave temporal y nueva contraseña son requeridas'}), 400
+
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres'}), 400
+
+    # Verificar token
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT id FROM users WHERE reset_token = ? AND reset_token_expiry > ?',
+              (temp_password, datetime.datetime.utcnow()))
+    user = c.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Clave temporal inválida o expirada'}), 400
+
+    # Hash de la nueva contraseña
+    password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+
+    # Actualizar contraseña y limpiar token
+    c.execute('UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL WHERE reset_token = ?',
+              (password_hash.decode('utf-8'), temp_password))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': 'Contraseña restablecida exitosamente'}), 200
 
 @app.route('/api/download/<transaction_id>')
 def download_beat(transaction_id):

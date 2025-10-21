@@ -41,7 +41,7 @@
 
             <div class="links">
                 <a href="#" onclick="showRegister()">¿No tienes cuenta? Regístrate</a>
-                <a href="#" onclick="forgotPassword()">¿Olvidaste tu contraseña?</a>
+                <a href="#" onclick="showForgotPassword()">¿Olvidaste tu contraseña?</a>
                 <div class="legal-links">
                     <a href="privacy.html" target="_blank">Política de Privacidad</a>
                     <a href="terms.html" target="_blank">Términos de Servicio</a>
@@ -94,6 +94,26 @@
 
             <div class="links">
                 <a href="#" onclick="showLogin()">¿Ya tienes cuenta? Inicia sesión</a>
+            </div>
+        </div>
+
+        <div class="forgot-password-form" id="forgotPasswordForm" style="display: none;">
+            <div class="logo">
+                <h1>MAJESTIC BEATS</h1>
+            </div>
+            <h2>Recuperar Contraseña</h2>
+            <p>Ingresa tu email y te enviaremos una clave temporal para restablecer tu contraseña</p>
+
+            <form id="forgotPasswordFormElement">
+                <div class="form-group">
+                    <label for="forgotEmail">Correo electrónico</label>
+                    <input type="email" id="forgotEmail" name="email" required>
+                </div>
+                <button type="submit" class="btn-primary">Enviar Clave Temporal</button>
+            </form>
+
+            <div class="links">
+                <a href="#" onclick="showLogin()">Volver al Inicio de Sesión</a>
             </div>
         </div>
     </div>

@@ -42,3 +42,9 @@
 - [x] Remove billing section from checkout.html
 - [x] Remove billing validation from checkout.js
 - [x] Ensure download only after Mercado Pago payment approval in success.js
+- [x] Add password reset functionality with email
+- [x] Create reset_password.html page
+- [x] Update login.html to include forgot password link and form
+- [x] Add forgot_password and reset_password endpoints to server.py
+- [x] Update database schema to include reset_token and reset_token_expiry
+- [x] Update login.js to handle forgot password form
