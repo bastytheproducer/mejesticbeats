@@ -70,9 +70,6 @@ def google_auth():
 
     try:
         # Verificar el token de Google
-        from google.auth import jwt
-        from google.auth.transport import requests as google_requests
-
         # Decodificar el JWT sin verificar (para desarrollo; en producción, verifica con Google)
         decoded = jwt.decode(data['credential'], options={"verify_signature": False})
 
@@ -300,6 +297,11 @@ def payment_notification():
 
 def send_reset_email(email, reset_token):
     """Enviar email con clave temporal para recuperación de contraseña"""
+    if DEV_MODE:
+        print(f"DEV MODE: Reset token for {email}: {reset_token}")
+        print("DEV MODE: Email sending bypassed. Use this token to reset password.")
+        return True
+
     try:
         msg = MIMEMultipart()
         msg['From'] = FROM_EMAIL
@@ -330,6 +332,7 @@ def send_reset_email(email, reset_token):
         server.sendmail(FROM_EMAIL, email, text)
         server.quit()
 
+        print(f"Email sent successfully to {email}")
         return True
     except Exception as e:
         print(f"Error enviando email: {str(e)}")
@@ -352,7 +355,10 @@ def forgot_password():
 
     if not user:
         # No revelar si el email existe o no por seguridad
-        return jsonify({'success': True, 'message': 'Si el email existe, recibirás instrucciones para recuperar tu contraseña'}), 200
+        message = 'Si el email existe, recibirás instrucciones para recuperar tu contraseña'
+        if DEV_MODE:
+            message += ' (En modo desarrollo, revisa la consola del servidor para el token)'
+        return jsonify({'success': True, 'message': message}), 200
 
     # Generar clave temporal única de 9 caracteres
     reset_token = secrets.token_urlsafe(6)[:9]  # Genera al menos 9 caracteres seguros
@@ -368,7 +374,10 @@ def forgot_password():
 
     # Enviar email
     if send_reset_email(email, reset_token):
-        return jsonify({'success': True, 'message': 'Si el email existe, recibirás instrucciones para recuperar tu contraseña'}), 200
+        message = 'Si el email existe, recibirás instrucciones para recuperar tu contraseña'
+        if DEV_MODE:
+            message += ' (En modo desarrollo, revisa la consola del servidor para el token)'
+        return jsonify({'success': True, 'message': message}), 200
     else:
         return jsonify({'success': False, 'message': 'Error enviando email. Inténtalo de nuevo más tarde'}), 500
 
@@ -420,17 +429,17 @@ def download_beat(transaction_id):
 
     # Mapear nombres de beats a archivos reales
     beat_mapping = {
-        'Beat Verano Reggaeton': 'BEATS/BEAT VERANO REGGEATON.mp3',
-        'Beat 2025 Verano Trap': 'BEATS/BEAT 2025 VERANO TRAP HOUSE.mp3',
-        'Beat Rellax Reggaeton': 'BEATS/BEAT RELLAX REGGEATON.mp3',
-        'Beat Hip Hop Piano Gigant': 'BEATS/BEAT HIP HOP PIANO GIGANT.mp3',
-        'Beat Sin Frontera': 'BEATS/BEAT SIN FRONTERA.mp3',
-        'Beat Trap Navideño Chilling': 'BEATS/BEAT TRAP NAVIDEÑO CHILLING.mp3'
+        'Beat Verano Reggaeton': 'BEATS/BEAT%20VERANO%20REGGEATON.mp3',
+        'Beat 2025 Verano Trap': 'BEATS/BEAT%202025%20VERANO%20TRAP%20HOUSE.mp3',
+        'Beat Rellax Reggaeton': 'BEATS/BEAT%20RELLAX%20REGGEATON.mp3',
+        'Beat Hip Hop Piano Gigant': 'BEATS/BEAT%20HIP%20HOP%20PIANO%20GIGANT.mp3',
+        'Beat Sin Frontera': 'BEATS/BEAT%20SIN%20FRONTERA.mp3',
+        'Beat Trap Navideño Chilling': 'BEATS/BEAT%20TRAP%20NAVIDEÑO%20CHILLING.mp3'
     }
 
     # Obtener beat desde parámetros de URL
     beat_name = request.args.get('beat', 'Beat Verano Reggaeton')
-    beat_file = beat_mapping.get(beat_name, 'BEATS/BEAT VERANO REGGEATON.mp3')
+    beat_file = beat_mapping.get(beat_name, 'BEATS/BEAT%20VERANO%20REGGEATON.mp3')
 
     if os.path.exists(beat_file):
         return send_from_directory('.', beat_file, as_attachment=True, download_name=f"{beat_name}.mp3")
@@ -461,33 +470,8 @@ if __name__ == '__main__':
         try:
             subprocess.run(['mkcert', '--version'], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print("Instalando mkcert...")
-            # Descargar mkcert
-            import urllib.request
-            import zipfile
-            import platform
-
-            system = platform.system().lower()
-            if system == 'windows':
-                url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-windows-amd64.exe'
-                filename = 'mkcert.exe'
-            elif system == 'linux':
-                url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-linux-amd64'
-                filename = 'mkcert'
-            elif system == 'darwin':
-                url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-darwin-amd64'
-                filename = 'mkcert'
-            else:
-                print("Sistema operativo no soportado para instalación automática de mkcert")
-                exit(1)
-
-            try:
-                urllib.request.urlretrieve(url, filename)
-                os.chmod(filename, 0o755)
-                print("mkcert instalado correctamente")
-            except Exception as e:
-                print(f"Error instalando mkcert: {e}")
-                print("Continuando sin mkcert...")
+            print("mkcert no está instalado. Para desarrollo local con HTTPS, instala mkcert manualmente.")
+            print("Instrucciones: https://github.com/FiloSottile/mkcert")
 
         # Instalar CA de mkcert
         try:

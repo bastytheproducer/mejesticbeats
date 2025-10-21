@@ -20,9 +20,7 @@ function showLogin() {
 }
 
 function showForgotPassword() {
-    document.querySelector('.login-form').style.display = 'none';
-    document.querySelector('.register-form').style.display = 'none';
-    document.querySelector('.forgot-password-form').style.display = 'block';
+    window.location.href = 'reset_password.html';
 }
 
 function initializeGoogleSignIn() {
