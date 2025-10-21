@@ -1,6 +1,11 @@
-- [ ] Agregar barra de progreso (scrubber) debajo de la forma de onda en index.html
-- [ ] Agregar control de volumen estilo Apple en player-controls en index.html
-- [ ] Implementar funcionalidad de scrubbing en script.js
-- [ ] Implementar control de volumen en script.js
-- [ ] Estilizar barra de progreso y control de volumen en styles.css para que coincida con el estilo Apple
-- [ ] Probar los cambios corriendo el servidor y verificando la navegación y volumen
+- [x] Install bcrypt and sqlite3 dependencies
+- [x] Set up SQLite database with users table in server.py
+- [x] Add /api/register endpoint to hash passwords and store users
+- [x] Add /api/login endpoint to verify hashed passwords
+- [x] Update login.js to send form data to server endpoints and handle responses
+- [x] Create privacy.html with placeholder content
+- [x] Create terms.html with placeholder content
+- [x] Add links to privacy and terms pages in login.html
+- [x] Test registration and login functionality
+- [ ] Verify Google OAuth works after adding authorized origin
+- [ ] Ensure HTTPS certificate is trusted for OAuth

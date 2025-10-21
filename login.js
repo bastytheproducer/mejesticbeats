@@ -136,14 +136,30 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
         return;
     }
 
-    if (password.length < 6) {
-        alert('La contraseña debe tener al menos 6 caracteres.');
-        return;
-    }
-
-    // Simulación de login exitoso
-    alert('Login exitoso! Redirigiendo al checkout...');
-    window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
+    // Enviar datos al servidor
+    fetch('/api/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            email: email,
+            password: password
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Login exitoso! Redirigiendo al checkout...');
+            window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error al enviar datos de login:', error);
+        alert('Error de conexión. Inténtalo de nuevo.');
+    });
 });
 
 // Manejar el formulario de registro
@@ -160,12 +176,46 @@ document.getElementById('registerFormElement').addEventListener('submit', functi
         return;
     }
 
-    if (name && email && password) {
-        // Redirigir a la página de checkout
-        window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
-    } else {
+    if (!name || !email || !password) {
         alert('Por favor, completa todos los campos.');
+        return;
     }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        alert('Por favor, ingresa un email válido.');
+        return;
+    }
+
+    if (password.length < 6) {
+        alert('La contraseña debe tener al menos 6 caracteres.');
+        return;
+    }
+
+    // Enviar datos al servidor
+    fetch('/api/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: name,
+            email: email,
+            password: password
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Registro exitoso! Ahora puedes iniciar sesión.');
+            showLogin(); // Cambiar a formulario de login
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error al enviar datos de registro:', error);
+        alert('Error de conexión. Inténtalo de nuevo.');
+    });
 });
 
 // Función para alternar la visibilidad de la contraseña

@@ -4,8 +4,25 @@ import os
 import ipaddress
 import requests
 import json
+import sqlite3
+import bcrypt
 
 app = Flask(__name__, static_folder='.')
+
+# Database setup
+def init_db():
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  name TEXT NOT NULL,
+                  email TEXT UNIQUE NOT NULL,
+                  password_hash TEXT NOT NULL)''')
+    conn.commit()
+    conn.close()
+
+# Initialize database on startup
+init_db()
 
 @app.route('/')
 def index():
@@ -26,6 +43,55 @@ def google_auth():
     if data and 'credential' in data:
         return jsonify({'success': True, 'message': 'Autenticación exitosa'})
     return jsonify({'success': False, 'message': 'Token inválido'}), 400
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    name = data.get('name')
+    email = data.get('email')
+    password = data.get('password')
+
+    if not name or not email or not password:
+        return jsonify({'success': False, 'message': 'Todos los campos son requeridos'}), 400
+
+    if len(password) < 6:
+        return jsonify({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres'}), 400
+
+    # Hash the password
+    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    try:
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
+                  (name, email, password_hash.decode('utf-8')))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Usuario registrado exitosamente'})
+    except sqlite3.IntegrityError:
+        return jsonify({'success': False, 'message': 'El email ya está registrado'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': 'Error interno del servidor'}), 500
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({'success': False, 'message': 'Email y contraseña son requeridos'}), 400
+
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT id, name, password_hash FROM users WHERE email = ?', (email,))
+    user = c.fetchone()
+    conn.close()
+
+    if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
+        return jsonify({'success': True, 'message': 'Inicio de sesión exitoso', 'user': {'id': user[0], 'name': user[1], 'email': email}})
+    else:
+        return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
 
 # Configuración de PayPal (Sandbox)
 PAYPAL_CLIENT_ID = 'AbJCNysCeJwZ2g-62JxkTlxIb3NwDEZJW7ZBctPmPRWtKa16bMOnzD_9Dn9eJ4PZ2cXUT8CS4D_nzLhB'  # Client ID real
@@ -148,59 +214,5 @@ def download_beat(transaction_id):
         return jsonify({'error': 'Beat no encontrado'}), 404
 
 if __name__ == '__main__':
-    # Para desarrollo local con HTTPS y certificados de confianza
-    import os
-    import subprocess
-
-    # Instalar mkcert si no está disponible
-    try:
-        subprocess.run(['mkcert', '--version'], capture_output=True, check=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Instalando mkcert...")
-        # Descargar mkcert
-        import urllib.request
-        import zipfile
-        import platform
-
-        system = platform.system().lower()
-        if system == 'windows':
-            url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-windows-amd64.exe'
-            filename = 'mkcert.exe'
-        else:
-            print("Sistema operativo no soportado para instalación automática de mkcert")
-            exit(1)
-
-        urllib.request.urlretrieve(url, filename)
-        os.chmod(filename, 0o755)
-
-    # Instalar CA de mkcert
-    try:
-        subprocess.run(['mkcert', '-install'], check=True)
-        print("CA de mkcert instalado correctamente")
-    except subprocess.CalledProcessError:
-        print("Error instalando CA de mkcert")
-
-    # Generar certificados para localhost
-    cert_file = 'localhost.pem'
-    key_file = 'localhost-key.pem'
-
-    if not os.path.exists(cert_file) or not os.path.exists(key_file):
-        try:
-            subprocess.run(['mkcert', '-cert-file', cert_file, '-key-file', key_file, 'localhost', '127.0.0.1'], check=True)
-            print("Certificados SSL generados correctamente")
-        except subprocess.CalledProcessError:
-            print("Error generando certificados SSL")
-
-    # Ejecutar servidor HTTPS
-    if os.path.exists(cert_file) and os.path.exists(key_file):
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(cert_file, key_file)
-
-        print("Servidor HTTPS ejecutándose en https://localhost:5000")
-        print("IMPORTANTE: Si ves advertencias de certificado, acepta el certificado de mkcert")
-        print("Google OAuth funcionará correctamente con HTTPS")
-        app.run(host='localhost', port=5000, ssl_context=context, debug=True)
-    else:
-        print("No se pudieron generar los certificados. Ejecutando en HTTP...")
-        print("Servidor HTTP ejecutándose en http://localhost:5000")
-        app.run(host='localhost', port=5000, debug=True)
+    print("Servidor ejecutándose en http://localhost:5000")
+    app.run(host='localhost', port=5000, debug=True)
