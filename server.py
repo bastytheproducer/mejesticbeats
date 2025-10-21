@@ -218,68 +218,88 @@ if __name__ == '__main__':
     import os
     import subprocess
 
-    # Instalar mkcert si no está disponible
-    try:
-        subprocess.run(['mkcert', '--version'], capture_output=True, check=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Instalando mkcert...")
-        # Descargar mkcert
-        import urllib.request
-        import zipfile
-        import platform
+    # Obtener puerto desde variable de entorno (para despliegue en la nube)
+    port = int(os.environ.get('PORT', 5000))
 
-        system = platform.system().lower()
-        if system == 'windows':
-            url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-windows-amd64.exe'
-            filename = 'mkcert.exe'
-        elif system == 'linux':
-            url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-linux-amd64'
-            filename = 'mkcert'
-        elif system == 'darwin':
-            url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-darwin-amd64'
-            filename = 'mkcert'
-        else:
-            print("Sistema operativo no soportado para instalación automática de mkcert")
-            exit(1)
-
-        try:
-            urllib.request.urlretrieve(url, filename)
-            os.chmod(filename, 0o755)
-            print("mkcert instalado correctamente")
-        except Exception as e:
-            print(f"Error instalando mkcert: {e}")
-            print("Continuando sin mkcert...")
-
-    # Instalar CA de mkcert
-    try:
-        subprocess.run(['mkcert', '-install'], check=True, capture_output=True)
-        print("CA de mkcert instalado correctamente")
-    except subprocess.CalledProcessError:
-        print("Error instalando CA de mkcert - puedes ignorar si ya está instalado")
-
-    # Generar certificados para localhost
-    cert_file = 'localhost.pem'
-    key_file = 'localhost-key.pem'
-
-    if not os.path.exists(cert_file) or not os.path.exists(key_file):
-        try:
-            subprocess.run(['mkcert', '-cert-file', cert_file, '-key-file', key_file, 'localhost', '127.0.0.1'], check=True, capture_output=True)
-            print("Certificados SSL generados correctamente")
-        except subprocess.CalledProcessError:
-            print("Error generando certificados SSL - usando certificados existentes si están disponibles")
-
-    # Ejecutar servidor HTTPS
-    if os.path.exists(cert_file) and os.path.exists(key_file):
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(cert_file, key_file)
-
-        print("🚀 Servidor HTTPS ejecutándose en https://localhost:5000")
-        print("⚠️  IMPORTANTE: Si ves advertencias de certificado, acepta el certificado de mkcert")
-        print("🔐 Google OAuth funcionará correctamente con HTTPS")
-        print("🌐 Para Google OAuth, asegúrate de agregar https://localhost:5000 a los orígenes autorizados en Google Cloud Console")
-        app.run(host='localhost', port=5000, ssl_context=context, debug=True)
+    # Configurar URLs para Google OAuth
+    if port == 5000:
+        oauth_url = "https://localhost:5000"
     else:
-        print("❌ No se pudieron generar los certificados. Ejecutando en HTTP...")
-        print("⚠️  Google OAuth NO funcionará en HTTP - necesitas HTTPS")
-        print("💡 Ejecuta: mkcert -install && mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1")
-        app.run(host='localhost', port=5000, debug=True)
+        # Para despliegue en la nube, la URL se debe configurar manualmente
+        oauth_url = os.environ.get('OAUTH_URL', f'http://localhost:{port}')
+
+    print(f"🌐 URL para Google OAuth: {oauth_url}")
+    print("📝 Agrega esta URL a los orígenes autorizados en Google Cloud Console")
+
+    # Para desarrollo local (puerto 5000), usar HTTPS con mkcert
+    if port == 5000:
+        # Instalar mkcert si no está disponible
+        try:
+            subprocess.run(['mkcert', '--version'], capture_output=True, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("Instalando mkcert...")
+            # Descargar mkcert
+            import urllib.request
+            import zipfile
+            import platform
+
+            system = platform.system().lower()
+            if system == 'windows':
+                url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-windows-amd64.exe'
+                filename = 'mkcert.exe'
+            elif system == 'linux':
+                url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-linux-amd64'
+                filename = 'mkcert'
+            elif system == 'darwin':
+                url = 'https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-darwin-amd64'
+                filename = 'mkcert'
+            else:
+                print("Sistema operativo no soportado para instalación automática de mkcert")
+                exit(1)
+
+            try:
+                urllib.request.urlretrieve(url, filename)
+                os.chmod(filename, 0o755)
+                print("mkcert instalado correctamente")
+            except Exception as e:
+                print(f"Error instalando mkcert: {e}")
+                print("Continuando sin mkcert...")
+
+        # Instalar CA de mkcert
+        try:
+            subprocess.run(['mkcert', '-install'], check=True, capture_output=True)
+            print("CA de mkcert instalado correctamente")
+        except subprocess.CalledProcessError:
+            print("Error instalando CA de mkcert - puedes ignorar si ya está instalado")
+
+        # Generar certificados para localhost
+        cert_file = 'localhost.pem'
+        key_file = 'localhost-key.pem'
+
+        if not os.path.exists(cert_file) or not os.path.exists(key_file):
+            try:
+                subprocess.run(['mkcert', '-cert-file', cert_file, '-key-file', key_file, 'localhost', '127.0.0.1'], check=True, capture_output=True)
+                print("Certificados SSL generados correctamente")
+            except subprocess.CalledProcessError:
+                print("Error generando certificados SSL - usando certificados existentes si están disponibles")
+
+        # Ejecutar servidor HTTPS
+        if os.path.exists(cert_file) and os.path.exists(key_file):
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(cert_file, key_file)
+
+            print("🚀 Servidor HTTPS ejecutándose en https://localhost:5000")
+            print("⚠️  IMPORTANTE: Si ves advertencias de certificado, acepta el certificado de mkcert")
+            print("🔐 Google OAuth funcionará correctamente con HTTPS")
+            print("🌐 Para Google OAuth, asegúrate de agregar https://localhost:5000 a los orígenes autorizados en Google Cloud Console")
+            app.run(host='localhost', port=port, ssl_context=context, debug=True)
+        else:
+            print("❌ No se pudieron generar los certificados. Ejecutando en HTTP...")
+            print("⚠️  Google OAuth NO funcionará en HTTP - necesitas HTTPS")
+            print("💡 Ejecuta: mkcert -install && mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1")
+            app.run(host='localhost', port=port, debug=True)
+    else:
+        # Para despliegue en la nube (puerto dinámico), usar HTTP (la nube maneja HTTPS)
+        print(f"🚀 Servidor ejecutándose en puerto {port} (modo nube)")
+        print("🌐 Para Google OAuth, asegúrate de agregar la URL de tu aplicación en la nube a los orígenes autorizados en Google Cloud Console")
+        app.run(host='0.0.0.0', port=port, debug=False)
