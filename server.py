@@ -30,7 +30,10 @@ def add_security_headers(response):
         "connect-src 'self' https://accounts.google.com https://www.googleapis.com https://api.mercadopago.com; "
         "frame-src https://accounts.google.com https://www.mercadopago.com.ar;"
     )
-    response.headers['Cross-Origin-Opener-Policy'] = 'unsafe-none'
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
     return response
 
 # Database setup
@@ -360,9 +363,12 @@ def send_reset_email(email, reset_token):
         print(f"Error enviando email: {str(e)}")
         return False
 
-@app.route('/api/forgot_password', methods=['POST'])
+@app.route('/api/forgot_password', methods=['POST', 'OPTIONS'])
 def forgot_password():
     """Solicitar recuperación de contraseña"""
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
+
     data = request.get_json()
     email = data.get('email')
 
