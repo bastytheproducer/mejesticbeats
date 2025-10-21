@@ -90,6 +90,10 @@ function handleCredentialResponse(response) {
     .then(data => {
         if (data.success) {
             console.log('Autenticación exitosa en el servidor');
+            // Guardar token JWT en localStorage
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+            }
             // Redirigir a la página de checkout
             const selectedBeat = new URLSearchParams(window.location.search).get('beat');
             window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
@@ -151,6 +155,10 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     .then(data => {
         if (data.success) {
             alert('Login exitoso! Redirigiendo al checkout...');
+            // Guardar token JWT en localStorage
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+            }
             window.location.href = 'checkout.html?beat=' + encodeURIComponent(selectedBeat || 'tu beat');
         } else {
             alert('Error: ' + data.message);
@@ -207,6 +215,10 @@ document.getElementById('registerFormElement').addEventListener('submit', functi
     .then(data => {
         if (data.success) {
             alert('Registro exitoso! Ahora puedes iniciar sesión.');
+            // Guardar token JWT en localStorage
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+            }
             showLogin(); // Cambiar a formulario de login
         } else {
             alert('Error: ' + data.message);

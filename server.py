@@ -6,21 +6,27 @@ import requests
 import json
 import sqlite3
 import bcrypt
+import mercadopago
+import jwt
+import datetime
 
 app = Flask(__name__, static_folder='.')
+
+# JWT Secret Key
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'tu_clave_secreta_muy_segura_aqui')
 
 @app.after_request
 def add_security_headers(response):
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com blob: data:; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com https://sdk.mercadopago.com blob: data:; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://www.gstatic.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: https:; "
-        "connect-src 'self' https://accounts.google.com https://www.googleapis.com; "
-        "frame-src https://accounts.google.com;"
+        "connect-src 'self' https://accounts.google.com https://www.googleapis.com https://api.mercadopago.com; "
+        "frame-src https://accounts.google.com https://www.mercadopago.com.ar;"
     )
-    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
+    response.headers['Cross-Origin-Opener-Policy'] = 'unsafe-none'
     return response
 
 # Database setup
@@ -72,9 +78,19 @@ def google_auth():
             if not user_email:
                 return jsonify({'success': False, 'message': 'Email no encontrado en el token'}), 400
 
+            # Generar JWT token
+            token_payload = {
+                'user_id': decoded.get('sub', user_email),
+                'email': user_email,
+                'name': decoded.get('name'),
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+            }
+            token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm='HS256')
+
             return jsonify({
                 'success': True,
                 'message': 'Autenticación exitosa',
+                'token': token,
                 'user': {
                     'name': decoded.get('name'),
                     'email': user_email,
@@ -110,7 +126,17 @@ def register():
                   (name, email, password_hash.decode('utf-8')))
         conn.commit()
         conn.close()
-        return jsonify({'success': True, 'message': 'Usuario registrado exitosamente'})
+
+        # Generar JWT token
+        token_payload = {
+            'user_id': email,
+            'email': email,
+            'name': name,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        }
+        token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm='HS256')
+
+        return jsonify({'success': True, 'message': 'Usuario registrado exitosamente', 'token': token})
     except sqlite3.IntegrityError:
         return jsonify({'success': False, 'message': 'El email ya está registrado'}), 400
     except Exception as e:
@@ -132,23 +158,141 @@ def login():
     conn.close()
 
     if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
-        return jsonify({'success': True, 'message': 'Inicio de sesión exitoso', 'user': {'id': user[0], 'name': user[1], 'email': email}})
+        # Generar JWT token
+        token_payload = {
+            'user_id': user[0],
+            'email': email,
+            'name': user[1],
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        }
+        token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm='HS256')
+
+        return jsonify({'success': True, 'message': 'Inicio de sesión exitoso', 'token': token, 'user': {'id': user[0], 'name': user[1], 'email': email}})
     else:
         return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
+
+# Middleware para verificar JWT
+def verify_token():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+# Configuración de Mercado Pago
+MERCADO_PAGO_ACCESS_TOKEN = os.environ.get('MERCADO_PAGO_ACCESS_TOKEN', 'APP_USR-3539367639762246-102102-0f43deb9e987a46b1829d95cbbe0ced3-301099354')
+sdk = mercadopago.SDK(MERCADO_PAGO_ACCESS_TOKEN)
 
 # Configuración de Google OAuth
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '****VaJN')
 
+@app.route('/api/create_preference', methods=['POST'])
+def create_preference():
+    """Crear preferencia de pago para Mercado Pago"""
+    # Verificar autenticación
+    user = verify_token()
+    if not user:
+        return jsonify({'success': False, 'message': 'Autenticación requerida'}), 401
 
+    data = request.get_json()
+    beat_name = data.get('beat_name')
+    beat_price = data.get('beat_price', 0)
 
+    if not beat_name or beat_price <= 0:
+        return jsonify({'success': False, 'message': 'Datos de beat inválidos'}), 400
 
+    # Obtener URL base para callbacks
+    base_url = request.host_url.rstrip('/')
 
+    # Crear preferencia de pago
+    preference_data = {
+        "items": [
+            {
+                "title": f"Beat: {beat_name}",
+                "quantity": 1,
+                "unit_price": float(beat_price.replace('$', '').replace(',', ''))
+            }
+        ],
+        "back_urls": {
+            "success": f"{base_url}/success.html",
+            "failure": f"{base_url}/checkout.html",
+            "pending": f"{base_url}/checkout.html"
+        },
+        "auto_return": "approved",
+        "external_reference": f"{user['user_id']}_{beat_name}"
+    }
 
+    try:
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response["response"]
+
+        return jsonify({
+            'success': True,
+            'preference_id': preference['id'],
+            'init_point': preference['init_point']
+        })
+    except Exception as e:
+        print(f"Error creando preferencia: {str(e)}")
+        return jsonify({'success': False, 'message': 'Error creando preferencia de pago'}), 500
+
+@app.route('/api/payment_notification', methods=['POST'])
+def payment_notification():
+    """Webhook para notificaciones de Mercado Pago"""
+    data = request.get_json()
+
+    # Verificar que la solicitud provenga de Mercado Pago (básica)
+    # En producción, implementar verificación de firma HMAC
+    if not data:
+        return jsonify({'status': 'error', 'message': 'No data received'}), 400
+
+    if data.get('type') == 'payment':
+        payment_id = data.get('data', {}).get('id')
+
+        if payment_id:
+            try:
+                # Obtener detalles del pago desde Mercado Pago
+                payment_info = sdk.payment().get(payment_id)
+                payment_data = payment_info['response']
+
+                # Verificar estado del pago
+                status = payment_data.get('status')
+                external_reference = payment_data.get('external_reference')
+
+                print(f"Notificación de pago recibida: ID {payment_id}, Estado: {status}, Referencia: {external_reference}")
+
+                # Aquí puedes actualizar tu base de datos según el estado del pago
+                # Por ejemplo, marcar como pagado, enviar email de confirmación, etc.
+
+                if status == 'approved':
+                    print(f"Pago aprobado para: {external_reference}")
+                    # Actualizar base de datos: marcar como vendido, enviar beat por email, etc.
+                elif status == 'rejected':
+                    print(f"Pago rechazado para: {external_reference}")
+                elif status == 'pending':
+                    print(f"Pago pendiente para: {external_reference}")
+
+            except Exception as e:
+                print(f"Error procesando notificación de pago: {str(e)}")
+                return jsonify({'status': 'error', 'message': 'Error processing payment'}), 500
+
+    return jsonify({'status': 'ok'}), 200
 
 @app.route('/api/download/<transaction_id>')
 def download_beat(transaction_id):
     """Descargar beat después de pago exitoso"""
+    # Verificar autenticación
+    user = verify_token()
+    if not user:
+        return jsonify({'error': 'Autenticación requerida'}), 401
+
     # En producción, verificaría que la transacción existe y es válida
     # Por ahora, simulamos descarga basada en el transaction_id
 

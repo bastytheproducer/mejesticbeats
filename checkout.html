@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout - Beat Venta</title>
     <link rel="stylesheet" href="checkout.css">
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
 
 </head>
 <body>
@@ -33,50 +34,16 @@
 
                     <div class="payment-methods">
                         <label class="payment-method">
-                            <input type="radio" name="paymentMethod" value="card" checked>
+                            <input type="radio" name="paymentMethod" value="mercadoPago" checked>
                             <span class="method-icon">💳</span>
-                            <span>Tarjeta de Crédito/Débito</span>
+                            <span>Mercado Pago</span>
                         </label>
                     </div>
 
-                    <div id="cardFields" style="display: block;">
-                        <div class="form-group">
-                            <label for="cardNumber">Número de Tarjeta</label>
-                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="expiryDate">Fecha de Expiración</label>
-                                <input type="text" id="expiryDate" placeholder="MM/AA" maxlength="5" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="cvv">CVV</label>
-                                <input type="text" id="cvv" placeholder="123" maxlength="4" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="cardName">Nombre en la Tarjeta</label>
-                            <input type="text" id="cardName" placeholder="Como aparece en la tarjeta" required>
-                        </div>
+                    <div id="mercadoPagoFields" style="display: block;">
+                        <div id="wallet_container"></div>
                     </div>
 
-
-                </div>
-
-                <div class="billing-section">
-                    <h3>Información de Facturación</h3>
-                    <div class="form-group">
-                        <label for="billingName">Nombre Completo</label>
-                        <input type="text" id="billingName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="billingEmail">Correo Electrónico</label>
-                        <input type="email" id="billingEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="billingAddress">Dirección</label>
-                        <input type="text" id="billingAddress" placeholder="Calle, número, comuna" required>
-                    </div>
                 </div>
 
                 <div class="terms">
@@ -86,7 +53,7 @@
                     </label>
                 </div>
 
-                <button type="submit" class="btn-primary">Pagar Ahora</button>
+                <button type="submit" class="btn-primary" style="display: none;">Pagar con Mercado Pago</button>
             </form>
         </div>
     </div>

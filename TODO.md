@@ -15,5 +15,30 @@
 - [x] Remove PayPal elements from checkout.html
 - [x] Remove PayPal logic from checkout.js
 - [x] Update _headers to remove PayPal from CSP
-- [ ] Test card payment functionality after PayPal removal
-- [ ] Configure Google OAuth for Railway deployment
+- [x] Test card payment functionality after PayPal removal
+- [x] Configure Google OAuth for Railway deployment
+- [x] Install Mercado Pago Python SDK
+- [x] Add Mercado Pago configuration to server.py
+- [x] Create /api/create_preference endpoint for payment preferences
+- [x] Update checkout.js to integrate Mercado Pago Checkout
+- [x] Handle Mercado Pago success/failure callbacks
+- [x] Update success.html for Mercado Pago confirmations
+- [x] Test Mercado Pago payment flow
+- [x] Configure Mercado Pago webhooks for payment notifications
+- [x] Integrate Mercado Pago ACCESS_TOKEN in Railway environment variables
+- [x] Add webhook URL to Mercado Pago dashboard: https://[tu-app].railway.app/api/payment_notification
+- [x] Improve webhook verification for security in server.py
+- [ ] Test webhook notifications after configuration
+- [ ] Verify payment flow with real ACCESS_TOKEN
+- [x] Update server.py with production ACCESS_TOKEN
+- [x] Modify checkout.html to include Mercado Pago SDK script and checkout container
+- [x] Update checkout.js to initialize embedded checkout instead of redirect
+- [ ] Test embedded checkout functionality
+- [ ] Update GitHub repository with changes
+- [x] Add JWT authentication (PyJWT)
+- [x] Generate JWT tokens on login/register in server.py
+- [x] Store JWT in localStorage in login.js
+- [x] Check JWT on checkout.html load, redirect to login if not present
+- [x] Remove billing section from checkout.html
+- [x] Remove billing validation from checkout.js
+- [x] Ensure download only after Mercado Pago payment approval in success.js
