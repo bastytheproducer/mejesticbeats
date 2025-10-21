@@ -20,7 +20,9 @@ function showLogin() {
 }
 
 function showForgotPassword() {
-    window.location.href = 'reset_password.html';
+    document.querySelector('.login-form').style.display = 'none';
+    document.querySelector('.register-form').style.display = 'none';
+    document.querySelector('.forgot-password-form').style.display = 'block';
 }
 
 function initializeGoogleSignIn() {
@@ -278,7 +280,8 @@ document.getElementById('forgotPasswordFormElement').addEventListener('submit', 
     .then(data => {
         if (data.success) {
             alert('Si el email existe, recibirás instrucciones para recuperar tu contraseña.');
-            showLogin(); // Volver al login
+            // Redirigir a la página de restablecimiento
+            window.location.href = 'reset_password.html';
         } else {
             alert('Error: ' + data.message);
         }

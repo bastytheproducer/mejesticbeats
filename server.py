@@ -204,6 +204,9 @@ SMTP_USERNAME = os.environ.get('SMTP_USERNAME', 'tu-email@gmail.com')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', 'tu-contraseña-app')
 FROM_EMAIL = os.environ.get('FROM_EMAIL', 'tu-email@gmail.com')
 
+# Modo desarrollo para emails
+DEV_MODE = os.environ.get('DEV_MODE', 'true').lower() == 'true'
+
 @app.route('/api/create_preference', methods=['POST'])
 def create_preference():
     """Crear preferencia de pago para Mercado Pago"""
