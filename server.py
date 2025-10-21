@@ -9,6 +9,20 @@ import bcrypt
 
 app = Flask(__name__, static_folder='.')
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com blob: data:; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://accounts.google.com https://www.googleapis.com; "
+        "frame-src https://accounts.google.com;"
+    )
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
+    return response
+
 # Database setup
 def init_db():
     conn = sqlite3.connect('users.db')
@@ -53,12 +67,17 @@ def google_auth():
         # En producción, deberías verificar el token con Google
         # Aquí simulamos validación básica
         if decoded.get('iss') == 'https://accounts.google.com' and decoded.get('aud') == GOOGLE_CLIENT_ID:
+            # Verificar que el email esté presente
+            user_email = decoded.get('email')
+            if not user_email:
+                return jsonify({'success': False, 'message': 'Email no encontrado en el token'}), 400
+
             return jsonify({
                 'success': True,
                 'message': 'Autenticación exitosa',
                 'user': {
                     'name': decoded.get('name'),
-                    'email': decoded.get('email'),
+                    'email': user_email,
                     'picture': decoded.get('picture')
                 }
             })

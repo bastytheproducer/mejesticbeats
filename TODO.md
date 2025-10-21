@@ -7,8 +7,10 @@
 - [x] Create terms.html with placeholder content
 - [x] Add links to privacy and terms pages in login.html
 - [x] Test registration and login functionality
-- [ ] Verify Google OAuth works after adding authorized origin
-- [ ] Ensure HTTPS certificate is trusted for OAuth
+- [x] Verify Google OAuth works after adding authorized origin
+- [x] Ensure HTTPS certificate is trusted for OAuth
+- [x] Fix CSP and COOP headers for Google OAuth
+- [x] Add email validation in Google auth endpoint
 - [x] Remove PayPal payment method from server.py
 - [x] Remove PayPal elements from checkout.html
 - [x] Remove PayPal logic from checkout.js
