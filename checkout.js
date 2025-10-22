@@ -68,7 +68,7 @@ function showTerms() {
 }
 
 // Procesar pago con Mercado Pago
-async function processPayment(beatName, beatPrice) {
+async function processPaymentMercadoPago(beatName, beatPrice) {
     const token = localStorage.getItem('auth_token');
     try {
         const response = await fetch('/api/create_preference', {
@@ -86,22 +86,40 @@ async function processPayment(beatName, beatPrice) {
         const data = await response.json();
 
         if (data.success) {
-            // Inicializar checkout embebido
-            const mp = new MercadoPago('APP_USR-692d1872-0d2c-40f2-89c2-e876e3ed5814', {
-                locale: 'es-AR'
-            });
-
-            mp.checkout({
-                preference: {
-                    id: data.preference_id
-                },
-                render: {
-                    container: '#wallet_container',
-                    label: 'Pagar con Mercado Pago'
-                }
-            });
+            // Redirigir al portal de Mercado Pago
+            window.location.href = data.init_point;
         } else {
             throw new Error(data.message || 'Error creando preferencia de pago');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
+// Procesar pago con Transbank (placeholders)
+async function processPaymentTransbank(beatName, beatPrice) {
+    const token = localStorage.getItem('auth_token');
+    try {
+        const response = await fetch('/api/create_transbank_transaction', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                beat_name: beatName,
+                beat_price: beatPrice
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Redirigir al portal de Transbank
+            window.location.href = data.redirect_url;
+        } else {
+            throw new Error(data.message || 'Error creando transacción de Transbank');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -127,8 +145,16 @@ document.getElementById('paymentForm').addEventListener('submit', async function
         // Obtener precio del beat
         const beatPrice = document.getElementById('beat-price').textContent;
 
-        // Procesar pago con Mercado Pago
-        await processPayment(selectedBeat, beatPrice);
+        // Obtener método de pago seleccionado
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+        if (paymentMethod === 'mercadoPago') {
+            await processPaymentMercadoPago(selectedBeat, beatPrice);
+        } else if (paymentMethod === 'transbank') {
+            await processPaymentTransbank(selectedBeat, beatPrice);
+        } else {
+            throw new Error('Método de pago no válido');
+        }
 
     } catch (error) {
         alert('Error: ' + error.message);

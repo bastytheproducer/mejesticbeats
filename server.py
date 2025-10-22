@@ -211,9 +211,14 @@ def verify_token():
     except jwt.InvalidTokenError:
         return None
 
-# Configuración de Mercado Pago
-MERCADO_PAGO_ACCESS_TOKEN = os.environ.get('MERCADO_PAGO_ACCESS_TOKEN', 'APP_USR-3539367639762246-102102-0f43deb9e987a46b1829d95cbbe0ced3-301099354')
+# Configuración de Mercado Pago (Chile)
+MERCADO_PAGO_ACCESS_TOKEN = os.environ.get('MERCADO_PAGO_ACCESS_TOKEN', 'TU_ACCESS_TOKEN_DE_MERCADO_PAGO_CHILE_AQUI')
 sdk = mercadopago.SDK(MERCADO_PAGO_ACCESS_TOKEN)
+
+# Configuración de Transbank (placeholders)
+TRANSBANK_API_KEY = os.environ.get('TRANSBANK_API_KEY', 'TU_API_KEY_DE_TRANSBANK_AQUI')
+TRANSBANK_COMMERCE_CODE = os.environ.get('TRANSBANK_COMMERCE_CODE', 'TU_CODIGO_DE_COMERCIO_AQUI')
+TRANSBANK_ENVIRONMENT = os.environ.get('TRANSBANK_ENVIRONMENT', 'TEST')  # 'TEST' o 'LIVE'
 
 # Configuración de Google OAuth
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com')
@@ -262,7 +267,8 @@ def create_preference():
             "pending": f"{base_url}/checkout.html"
         },
         "auto_return": "approved",
-        "external_reference": f"{user['user_id']}_{beat_name}"
+        "external_reference": f"{user['user_id']}_{beat_name}",
+        "marketplace_fee": 0  # Sin comisión de marketplace
     }
 
     try:
@@ -477,6 +483,32 @@ def change_password():
     conn.close()
 
     return jsonify({'success': True, 'message': 'Contraseña cambiada exitosamente'}), 200
+
+@app.route('/api/create_transbank_transaction', methods=['POST'])
+def create_transbank_transaction():
+    """Crear transacción de Transbank (placeholders)"""
+    # Verificar autenticación
+    user = verify_token()
+    if not user:
+        return jsonify({'success': False, 'message': 'Autenticación requerida'}), 401
+
+    data = request.get_json()
+    beat_name = data.get('beat_name')
+    beat_price = data.get('beat_price', 0)
+
+    if not beat_name or beat_price <= 0:
+        return jsonify({'success': False, 'message': 'Datos de beat inválidos'}), 400
+
+    # Placeholder para integración con Transbank
+    # En producción, aquí iría la lógica para crear la transacción con la API de Transbank
+    # Usando TRANSBANK_API_KEY, TRANSBANK_COMMERCE_CODE, etc.
+
+    # Simular respuesta exitosa con placeholders
+    return jsonify({
+        'success': True,
+        'redirect_url': 'https://webpay3g.transbank.cl/webpayserver/initTransaction',  # Placeholder
+        'token': 'PLACEHOLDER_TOKEN_TRANSBANK'  # Placeholder
+    })
 
 @app.route('/api/download/<transaction_id>')
 def download_beat(transaction_id):
