@@ -14,38 +14,59 @@ function checkAuthentication() {
 }
 
 // Datos de los beats para mostrar información
-const beatData = {
-    'Beat Verano Reggaeton': {
-        price: '$20.000 CLP',
-        genre: 'Reggaeton',
-        image: 'Caratulas de lo beats/beat verano reggeaton.png'
-    },
-    'Beat 2025 Verano Trap': {
-        price: '$25.000 CLP',
-        genre: 'Trap',
-        image: 'Caratulas de lo beats/Beat 2025 verano trap.png'
-    },
-    'Beat Rellax Reggaeton': {
-        price: '$22.000 CLP',
-        genre: 'Reggaeton Relax',
-        image: 'Caratulas de lo beats/beat rellax reggeaton.png'
-    },
-    'Beat Hip Hop Piano Gigant': {
-        price: '$28.000 CLP',
-        genre: 'Hip Hop',
-        image: 'Caratulas de lo beats/beat hip hop piano gigant.jpg'
-    },
-    'Beat Sin Frontera': {
-        price: '$30.000 CLP',
-        genre: 'Instrumental',
-        image: 'Caratulas de lo beats/beat sin frontera.png'
-    },
-    'Beat Trap Navideño Chilling': {
-        price: '$26.000 CLP',
-        genre: 'Trap Navideño',
-        image: 'Caratulas de lo beats/beat trap navideño chilling.png'
+let beatData = {};
+
+// Función para cargar datos de beats desde la API
+async function loadBeatData() {
+    try {
+        const response = await fetch('/api/beats');
+        const data = await response.json();
+
+        beatData = {};
+        data.beats.forEach(beat => {
+            beatData[beat.name] = {
+                price: beat.price,
+                genre: beat.genre,
+                image: beat.image
+            };
+        });
+    } catch (error) {
+        console.error('Error cargando datos de beats:', error);
+        // Fallback con datos estáticos si la API falla
+        beatData = {
+            'Beat Verano Reggaeton': {
+                price: '$20.000 CLP',
+                genre: 'Reggaeton',
+                image: 'Caratulas de lo beats/beat verano reggeaton.png'
+            },
+            'Beat 2025 Verano Trap': {
+                price: '$25.000 CLP',
+                genre: 'Trap',
+                image: 'Caratulas de lo beats/Beat 2025 verano trap.png'
+            },
+            'Beat Rellax Reggaeton': {
+                price: '$22.000 CLP',
+                genre: 'Reggaeton Relax',
+                image: 'Caratulas de lo beats/beat rellax reggeaton.png'
+            },
+            'Beat Hip Hop Piano Gigant': {
+                price: '$28.000 CLP',
+                genre: 'Hip Hop',
+                image: 'Caratulas de lo beats/beat hip hop piano gigant.jpg'
+            },
+            'Beat Sin Frontera': {
+                price: '$30.000 CLP',
+                genre: 'Instrumental',
+                image: 'Caratulas de lo beats/beat sin frontera.png'
+            },
+            'Beat Trap Navideño Chilling': {
+                price: '$26.000 CLP',
+                genre: 'Trap Navideño',
+                image: 'Caratulas de lo beats/beat trap navideño chilling.png'
+            }
+        };
     }
-};
+}
 
 // Cargar información del beat
 function loadBeatInfo() {
@@ -165,8 +186,9 @@ document.getElementById('paymentForm').addEventListener('submit', async function
 });
 
 // Event listeners
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     if (checkAuthentication()) {
+        await loadBeatData();
         loadBeatInfo();
     }
 });

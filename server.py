@@ -47,6 +47,33 @@ def init_db():
                   password_hash TEXT NOT NULL,
                   reset_token TEXT,
                   reset_token_expiry DATETIME)''')
+
+    # Crear tabla de beats con stock
+    c.execute('''CREATE TABLE IF NOT EXISTS beats
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  name TEXT UNIQUE NOT NULL,
+                  price TEXT NOT NULL,
+                  genre TEXT NOT NULL,
+                  file_path TEXT NOT NULL,
+                  image_path TEXT NOT NULL,
+                  stock INTEGER DEFAULT 1,
+                  sold BOOLEAN DEFAULT 0,
+                  sold_date DATETIME,
+                  buyer_email TEXT)''')
+
+    # Insertar beats iniciales si no existen
+    beats_data = [
+        ('Beat Verano Reggaeton', '$20.000 CLP', 'Reggaeton', 'BEATS/BEAT VERANO REGGEATON.mp3', 'Caratulas de lo beats/beat verano reggeaton.png'),
+        ('Beat 2025 Verano Trap', '$25.000 CLP', 'Trap', 'BEATS/BEAT 2025 VERANO TRAP HOUSE.mp3', 'Caratulas de lo beats/Beat 2025 verano trap.png'),
+        ('Beat Rellax Reggaeton', '$22.000 CLP', 'Reggaeton Relax', 'BEATS/BEAT RELLAX REGGEATON.mp3', 'Caratulas de lo beats/beat rellax reggeaton.png'),
+        ('Beat Hip Hop Piano Gigant', '$28.000 CLP', 'Hip Hop', 'BEATS/BEAT HIP HOP PIANO GIGANT.mp3', 'Caratulas de lo beats/beat hip hop piano gigant.jpg'),
+        ('Beat Sin Frontera', '$30.000 CLP', 'Instrumental', 'BEATS/BEAT SIN FRONTERA.mp3', 'Caratulas de lo beats/beat sin frontera.png'),
+        ('Beat Trap Navideño Chilling', '$26.000 CLP', 'Trap Navideño', 'BEATS/BEAT TRAP NAVIDEÑO CHILLING.mp3', 'Caratulas de lo beats/beat trap navideño chilling.png')
+    ]
+
+    for beat in beats_data:
+        c.execute('INSERT OR IGNORE INTO beats (name, price, genre, file_path, image_path) VALUES (?, ?, ?, ?, ?)', beat)
+
     conn.commit()
     conn.close()
 
@@ -510,37 +537,103 @@ def create_transbank_transaction():
         'token': 'PLACEHOLDER_TOKEN_TRANSBANK'  # Placeholder
     })
 
+@app.route('/api/beats')
+def get_beats():
+    """Obtener lista de beats disponibles (no vendidos)"""
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT name, price, genre, image_path FROM beats WHERE sold = 0 ORDER BY id')
+    beats = c.fetchall()
+    conn.close()
+
+    beats_list = []
+    for beat in beats:
+        beats_list.append({
+            'name': beat[0],
+            'price': beat[1],
+            'genre': beat[2],
+            'image': beat[3]
+        })
+
+    return jsonify({'beats': beats_list})
+
+@app.route('/api/check_stock/<beat_name>')
+def check_stock(beat_name):
+    """Verificar si un beat está disponible"""
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT stock, sold FROM beats WHERE name = ?', (beat_name,))
+    beat = c.fetchone()
+    conn.close()
+
+    if beat:
+        available = beat[0] > 0 and not beat[1]
+        return jsonify({'available': available, 'stock': beat[0], 'sold': beat[1]})
+    else:
+        return jsonify({'available': False, 'stock': 0, 'sold': False}), 404
+
+@app.route('/api/mark_sold/<beat_name>', methods=['POST'])
+def mark_beat_sold(beat_name):
+    """Marcar un beat como vendido"""
+    # Verificar autenticación
+    user = verify_token()
+    if not user:
+        return jsonify({'success': False, 'message': 'Autenticación requerida'}), 401
+
+    data = request.get_json()
+    buyer_email = data.get('buyer_email', user.get('email'))
+
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+
+    # Verificar que el beat existe y no está vendido
+    c.execute('SELECT id, stock FROM beats WHERE name = ? AND sold = 0', (beat_name,))
+    beat = c.fetchone()
+
+    if not beat:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Beat no disponible'}), 404
+
+    # Marcar como vendido
+    c.execute('''UPDATE beats SET sold = 1, sold_date = ?, buyer_email = ?, stock = 0
+                 WHERE name = ?''',
+              (datetime.datetime.utcnow(), buyer_email, beat_name))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': 'Beat marcado como vendido'})
+
 @app.route('/api/download/<transaction_id>')
 def download_beat(transaction_id):
     """Descargar beat después de pago exitoso"""
-    # Para "Beat Verano Reggaeton", permitir descarga sin autenticación (experimento simplificado)
-    beat_name = request.args.get('beat', 'Beat Verano Reggaeton')
+    # Verificar autenticación
+    user = verify_token()
+    if not user:
+        return jsonify({'error': 'Autenticación requerida'}), 401
 
-    if beat_name != 'Beat Verano Reggaeton':
-        # Verificar autenticación para otros beats
-        user = verify_token()
-        if not user:
-            return jsonify({'error': 'Autenticación requerida'}), 401
+    beat_name = request.args.get('beat')
 
-    # En producción, verificaría que la transacción existe y es válida
-    # Por ahora, simulamos descarga basada en el transaction_id
+    if not beat_name:
+        return jsonify({'error': 'Nombre del beat requerido'}), 400
 
-    # Mapear nombres de beats a archivos reales
-    beat_mapping = {
-        'Beat Verano Reggaeton': 'BEATS/BEAT%20VERANO%20REGGEATON.mp3',
-        'Beat 2025 Verano Trap': 'BEATS/BEAT%202025%20VERANO%20TRAP%20HOUSE.mp3',
-        'Beat Rellax Reggaeton': 'BEATS/BEAT%20RELLAX%20REGGEATON.mp3',
-        'Beat Hip Hop Piano Gigant': 'BEATS/BEAT%20HIP%20HOP%20PIANO%20GIGANT.mp3',
-        'Beat Sin Frontera': 'BEATS/BEAT%20SIN%20FRONTERA.mp3',
-        'Beat Trap Navideño Chilling': 'BEATS/BEAT%20TRAP%20NAVIDEÑO%20CHILLING.mp3'
-    }
+    # Verificar que el usuario compró este beat
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT file_path FROM beats WHERE name = ? AND buyer_email = ? AND sold = 1',
+              (beat_name, user['email']))
+    beat = c.fetchone()
+    conn.close()
 
-    beat_file = beat_mapping.get(beat_name, 'BEATS/BEAT%20VERANO%20REGGEATON.mp3')
+    if not beat:
+        return jsonify({'error': 'Beat no encontrado o no autorizado'}), 404
+
+    beat_file = beat[0]
 
     if os.path.exists(beat_file):
         return send_from_directory('.', beat_file, as_attachment=True, download_name=f"{beat_name}.mp3")
     else:
-        return jsonify({'error': 'Beat no encontrado'}), 404
+        return jsonify({'error': 'Archivo no encontrado'}), 404
 
 if __name__ == '__main__':
     # Para desarrollo local con HTTPS y certificados de confianza
