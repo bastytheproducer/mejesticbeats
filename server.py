@@ -513,10 +513,14 @@ def create_transbank_transaction():
 @app.route('/api/download/<transaction_id>')
 def download_beat(transaction_id):
     """Descargar beat después de pago exitoso"""
-    # Verificar autenticación
-    user = verify_token()
-    if not user:
-        return jsonify({'error': 'Autenticación requerida'}), 401
+    # Para "Beat Verano Reggaeton", permitir descarga sin autenticación (experimento simplificado)
+    beat_name = request.args.get('beat', 'Beat Verano Reggaeton')
+
+    if beat_name != 'Beat Verano Reggaeton':
+        # Verificar autenticación para otros beats
+        user = verify_token()
+        if not user:
+            return jsonify({'error': 'Autenticación requerida'}), 401
 
     # En producción, verificaría que la transacción existe y es válida
     # Por ahora, simulamos descarga basada en el transaction_id
@@ -531,8 +535,6 @@ def download_beat(transaction_id):
         'Beat Trap Navideño Chilling': 'BEATS/BEAT%20TRAP%20NAVIDEÑO%20CHILLING.mp3'
     }
 
-    # Obtener beat desde parámetros de URL
-    beat_name = request.args.get('beat', 'Beat Verano Reggaeton')
     beat_file = beat_mapping.get(beat_name, 'BEATS/BEAT%20VERANO%20REGGEATON.mp3')
 
     if os.path.exists(beat_file):

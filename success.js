@@ -18,6 +18,13 @@ function checkAuthentication() {
 
 // Cargar información de la compra
 function loadPurchaseInfo() {
+    // Para Beat Verano Reggaeton, no verificar autenticación y mostrar descarga inmediata
+    if (beatName === 'Beat Verano Reggaeton') {
+        // Mostrar descarga inmediata para este beat (experimento simplificado)
+        showDownloadSection();
+        return;
+    }
+
     if (!checkAuthentication()) return;
 
     if (beatName) {

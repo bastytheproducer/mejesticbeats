@@ -282,8 +282,13 @@ document.querySelectorAll('.play-btn').forEach((btn, index) => {
 });
 
 function buyBeat(beatName) {
-    // Redirigir a la página de login para completar la compra
-    window.location.href = 'login.html?beat=' + encodeURIComponent(beatName);
+    // Para Beat Verano Reggaeton, redirigir directo al link de Transbank
+    if (beatName === 'Beat Verano Reggaeton') {
+        window.location.href = 'https://www.webpay.cl/form-pay/329024';
+    } else {
+        // Redirigir a la página de login para completar la compra
+        window.location.href = 'login.html?beat=' + encodeURIComponent(beatName);
+    }
 }
 
 function buyCurrentBeat() {
