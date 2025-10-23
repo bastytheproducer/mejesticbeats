@@ -16,32 +16,32 @@ function checkAuthentication() {
 // Datos de los beats para mostrar información
 const beatData = {
     'Beat Verano Reggaeton': {
-        price: '$20',
+        price: '$20.000 CLP',
         genre: 'Reggaeton',
         image: 'Caratulas de lo beats/beat verano reggeaton.png'
     },
     'Beat 2025 Verano Trap': {
-        price: '$25',
+        price: '$25.000 CLP',
         genre: 'Trap',
         image: 'Caratulas de lo beats/Beat 2025 verano trap.png'
     },
     'Beat Rellax Reggaeton': {
-        price: '$22',
+        price: '$22.000 CLP',
         genre: 'Reggaeton Relax',
         image: 'Caratulas de lo beats/beat rellax reggeaton.png'
     },
     'Beat Hip Hop Piano Gigant': {
-        price: '$28',
+        price: '$28.000 CLP',
         genre: 'Hip Hop',
         image: 'Caratulas de lo beats/beat hip hop piano gigant.jpg'
     },
     'Beat Sin Frontera': {
-        price: '$30',
+        price: '$30.000 CLP',
         genre: 'Instrumental',
         image: 'Caratulas de lo beats/beat sin frontera.png'
     },
     'Beat Trap Navideño Chilling': {
-        price: '$26',
+        price: '$26.000 CLP',
         genre: 'Trap Navideño',
         image: 'Caratulas de lo beats/beat trap navideño chilling.png'
     }

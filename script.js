@@ -282,11 +282,21 @@ document.querySelectorAll('.play-btn').forEach((btn, index) => {
 });
 
 function buyBeat(beatName) {
-    // Para Beat Verano Reggaeton, redirigir directo al link de Transbank
-    if (beatName === 'Beat Verano Reggaeton') {
-        window.location.href = 'https://www.webpay.cl/form-pay/329024';
+    // Mapa de beats a sus respectivos links de WebPay
+    const webpayLinks = {
+        'Beat Verano Reggaeton': 'https://www.webpay.cl/form-pay/329024',
+        'Beat 2025 Verano Trap': 'https://www.webpay.cl/form-pay/329189',
+        'Beat Trap Navideño Chilling': 'https://www.webpay.cl/form-pay/329222',
+        'Beat Rellax Reggaeton': 'https://www.webpay.cl/form-pay/329218',
+        'Beat Sin Frontera': 'https://www.webpay.cl/form-pay/329220',
+        'Beat Hip Hop Piano Gigant': 'https://www.webpay.cl/form-pay/329219'
+    };
+
+    // Redirigir directamente al link de WebPay correspondiente
+    if (webpayLinks[beatName]) {
+        window.location.href = webpayLinks[beatName];
     } else {
-        // Redirigir a la página de login para completar la compra
+        // Si no se encuentra el beat, redirigir a login como fallback
         window.location.href = 'login.html?beat=' + encodeURIComponent(beatName);
     }
 }
