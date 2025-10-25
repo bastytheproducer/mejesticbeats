@@ -540,6 +540,8 @@ def create_transbank_transaction():
 @app.route('/api/beats')
 def get_beats():
     """Obtener lista de beats disponibles (no vendidos)"""
+    import urllib.parse
+
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
     c.execute('SELECT name, price, genre, image_path FROM beats WHERE sold = 0 ORDER BY id')
@@ -552,7 +554,7 @@ def get_beats():
             'name': beat[0],
             'price': beat[1],
             'genre': beat[2],
-            'image': beat[3]
+            'image': urllib.parse.quote(beat[3])
         })
 
     return jsonify({'beats': beats_list})
