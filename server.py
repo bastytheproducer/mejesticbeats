@@ -653,48 +653,11 @@ if __name__ == '__main__':
     print(f"🌐 URL para Google OAuth: {oauth_url}")
     print("📝 Agrega esta URL a los orígenes autorizados en Google Cloud Console")
 
-    # Para desarrollo local (puerto 5000), usar HTTPS con mkcert
+    # Para desarrollo local (puerto 5000), usar HTTP
     if port == 5000:
-        # Instalar mkcert si no está disponible
-        try:
-            subprocess.run(['mkcert', '--version'], capture_output=True, check=True)
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            print("mkcert no está instalado. Para desarrollo local con HTTPS, instala mkcert manualmente.")
-            print("Instrucciones: https://github.com/FiloSottile/mkcert")
-
-        # Instalar CA de mkcert
-        try:
-            subprocess.run(['./mkcert', '-install'], check=True, capture_output=True)
-            print("CA de mkcert instalado correctamente")
-        except subprocess.CalledProcessError:
-            print("Error instalando CA de mkcert - puedes ignorar si ya está instalado")
-
-        # Generar certificados para localhost
-        cert_file = 'localhost.pem'
-        key_file = 'localhost-key.pem'
-
-        if not os.path.exists(cert_file) or not os.path.exists(key_file):
-            try:
-                subprocess.run(['./mkcert', '-cert-file', cert_file, '-key-file', key_file, 'localhost', '127.0.0.1'], check=True, capture_output=True)
-                print("Certificados SSL generados correctamente")
-            except subprocess.CalledProcessError:
-                print("Error generando certificados SSL - usando certificados existentes si están disponibles")
-
-        # Ejecutar servidor HTTPS
-        if os.path.exists(cert_file) and os.path.exists(key_file):
-            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            context.load_cert_chain(cert_file, key_file)
-
-            print("🚀 Servidor HTTPS ejecutándose en https://localhost:5000")
-            print("⚠️  IMPORTANTE: Si ves advertencias de certificado, acepta el certificado de mkcert")
-            print("🔐 Google OAuth funcionará correctamente con HTTPS")
-            print("🌐 Para Google OAuth, asegúrate de agregar https://localhost:5000 a los orígenes autorizados en Google Cloud Console")
-            app.run(host='localhost', port=port, ssl_context=context, debug=True)
-        else:
-            print("❌ No se pudieron generar los certificados. Ejecutando en HTTP...")
-            print("⚠️  Google OAuth NO funcionará en HTTP - necesitas HTTPS")
-            print("💡 Ejecuta: mkcert -install && mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1")
-            app.run(host='localhost', port=port, debug=True)
+        print("🚀 Servidor HTTP ejecutándose en http://localhost:5000")
+        print("⚠️  Google OAuth NO funcionará en HTTP - necesitas HTTPS para producción")
+        app.run(host='localhost', port=port, debug=True)
     else:
         # Para despliegue en la nube (puerto dinámico), usar HTTP (la nube maneja HTTPS)
         print(f"🚀 Servidor ejecutándose en puerto {port} (modo nube)")
