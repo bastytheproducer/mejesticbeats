@@ -27,37 +27,49 @@ const tracks = [
         title: 'Beat Verano Reggaeton',
         genre: 'Reggaeton',
         src: 'BEATS/BEAT%20VERANO%20REGGEATON.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20verano%20reggeaton.png'
+        art: 'Caratulas%20de%20lo%20beats/beat%20verano%20reggeaton.png',
+        price: '$20.000 CLP',
+        paymentLink: 'https://www.webpay.cl/form-pay/329024'
     },
     {
         title: 'Beat 2025 Verano Trap',
         genre: 'Trap',
         src: 'BEATS/BEAT%202025%20VERANO%20TRAP%20HOUSE.mp3',
-        art: 'Caratulas%20de%20lo%20beats/Beat%202025%20verano%20trap.png'
+        art: 'Caratulas%20de%20lo%20beats/Beat%202025%20verano%20trap.png',
+        price: '$25.000 CLP',
+        paymentLink: 'https://www.webpay.cl/form-pay/329189'
     },
     {
         title: 'Beat Rellax Reggaeton',
         genre: 'Reggaeton Relax',
         src: 'BEATS/BEAT%20RELLAX%20REGGEATON.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20rellax%20reggeaton.png'
+        art: 'Caratulas%20de%20lo%20beats/beat%20rellax%20reggeaton.png',
+        price: '$22.000 CLP',
+        paymentLink: 'https://www.webpay.cl/form-pay/329218'
     },
     {
         title: 'Beat Hip Hop Piano Gigant',
         genre: 'Hip Hop',
         src: 'BEATS/BEAT%20HIP%20HOP%20PIANO%20GIGANT.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20hip%20hop%20piano%20gigant.jpg'
+        art: 'Caratulas%20de%20lo%20beats/beat%20hip%20hop%20piano%20gigant.jpg',
+        price: '$28.000 CLP',
+        paymentLink: 'https://www.webpay.cl/form-pay/329219'
     },
     {
         title: 'Beat Sin Frontera',
         genre: 'Instrumental',
         src: 'BEATS/BEAT%20SIN%20FRONTERA.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20sin%20frontera.png'
+        art: 'Caratulas%20de%20lo%20beats/beat%20sin%20frontera.png',
+        price: '$30.000 CLP',
+        paymentLink: 'https://www.webpay.cl/form-pay/329220'
     },
     {
         title: 'Beat Trap Navideño Chilling',
         genre: 'Trap Navideño',
         src: 'BEATS/BEAT%20TRAP%20NAVIDEÑO%20CHILLING.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20trap%20navideño%20chilling.png'
+        art: 'Caratulas%20de%20lo%20beats/beat%20trap%20navideño%20chilling.png',
+        price: '$26.000 CLP',
+        paymentLink: 'https://www.webpay.cl/form-pay/329222'
     }
 ];
 
@@ -281,101 +293,56 @@ document.querySelectorAll('.play-btn').forEach((btn, index) => {
     });
 });
 
-async function loadAvailableBeats() {
-    try {
-        const response = await fetch('/api/beats');
-        const data = await response.json();
+function loadAvailableBeats() {
+    const trackList = document.getElementById('track-list');
+    trackList.innerHTML = '';
 
-        const trackList = document.getElementById('track-list');
-        trackList.innerHTML = '';
-
-        if (data.beats.length === 0) {
-            trackList.innerHTML = '<p>No hay beats disponibles en este momento.</p>';
-            return;
-        }
-
-        // Mapear nombres de beats a archivos de audio
-        const audioFiles = {
-            'Beat Verano Reggaeton': 'BEATS/BEAT VERANO REGGEATON.mp3',
-            'Beat 2025 Verano Trap': 'BEATS/BEAT 2025 VERANO TRAP HOUSE.mp3',
-            'Beat Rellax Reggaeton': 'BEATS/BEAT RELLAX REGGEATON.mp3',
-            'Beat Hip Hop Piano Gigant': 'BEATS/BEAT HIP HOP PIANO GIGANT.mp3',
-            'Beat Sin Frontera': 'BEATS/BEAT SIN FRONTERA.mp3',
-            'Beat Trap Navideño Chilling': 'BEATS/BEAT TRAP NAVIDEÑO CHILLING.mp3'
-        };
-
-        data.beats.forEach(beat => {
-            const trackDiv = document.createElement('div');
-            trackDiv.className = 'track';
-            trackDiv.setAttribute('data-src', audioFiles[beat.name] || '');
-
-            trackDiv.innerHTML = `
-                <div class="track-info">
-                    <img src="${beat.image}" alt="${beat.name}" class="album-art">
-                    <div class="details">
-                        <h3>${beat.name}</h3>
-                        <p>Género: ${beat.genre}</p>
-                        <p>Precio: ${beat.price}</p>
-                    </div>
-                </div>
-                <div class="controls">
-                    <button class="play-btn">▶</button>
-                    <button class="buy-btn" onclick="buyBeat('${beat.name}')">Comprar Ahora</button>
-                </div>
-            `;
-
-            trackList.appendChild(trackDiv);
-        });
-
-        // Re-inicializar event listeners para los nuevos botones
-        document.querySelectorAll('.play-btn').forEach((btn, index) => {
-            btn.addEventListener('click', () => {
-                const tracks = document.querySelectorAll('.track');
-                currentTrackIndex = Array.from(tracks).indexOf(btn.closest('.track'));
-                loadTrack(currentTrackIndex);
-                playTrack();
-            });
-        });
-
-    } catch (error) {
-        console.error('Error cargando beats:', error);
-        document.getElementById('track-list').innerHTML = '<p>Error al cargar los beats. Inténtalo de nuevo más tarde.</p>';
+    if (tracks.length === 0) {
+        trackList.innerHTML = '<p>No hay beats disponibles en este momento.</p>';
+        return;
     }
+
+    tracks.forEach((beat, index) => {
+        const trackDiv = document.createElement('div');
+        trackDiv.className = 'track';
+        trackDiv.setAttribute('data-src', beat.src);
+
+        trackDiv.innerHTML = `
+            <div class="track-info">
+                <img src="${beat.art}" alt="${beat.title}" class="album-art">
+                <div class="details">
+                    <h3>${beat.title}</h3>
+                    <p>Género: ${beat.genre}</p>
+                    <p>Precio: ${beat.price}</p>
+                </div>
+            </div>
+            <div class="controls">
+                <button class="play-btn">▶</button>
+                <button class="buy-btn" onclick="buyBeat('${beat.title}')">Comprar Ahora</button>
+            </div>
+        `;
+
+        trackList.appendChild(trackDiv);
+    });
+
+    // Re-inicializar event listeners para los nuevos botones
+    document.querySelectorAll('.play-btn').forEach((btn, index) => {
+        btn.addEventListener('click', () => {
+            const trackDivs = document.querySelectorAll('.track');
+            currentTrackIndex = Array.from(trackDivs).indexOf(btn.closest('.track'));
+            loadTrack(currentTrackIndex);
+            playTrack();
+        });
+    });
 }
 
-async function buyBeat(beatName) {
-    try {
-        // Verificar stock antes de proceder
-        const stockResponse = await fetch(`/api/check_stock/${encodeURIComponent(beatName)}`);
-        const stockData = await stockResponse.json();
-
-        if (!stockData.available) {
-            alert('Este beat ya no está disponible.');
-            // Recargar la página para actualizar la lista
-            loadAvailableBeats();
-            return;
-        }
-
-        // Mapa de beats a sus respectivos links de WebPay
-        const webpayLinks = {
-            'Beat Verano Reggaeton': 'https://www.webpay.cl/form-pay/329024',
-            'Beat 2025 Verano Trap': 'https://www.webpay.cl/form-pay/329189',
-            'Beat Trap Navideño Chilling': 'https://www.webpay.cl/form-pay/329222',
-            'Beat Rellax Reggaeton': 'https://www.webpay.cl/form-pay/329218',
-            'Beat Sin Frontera': 'https://www.webpay.cl/form-pay/329220',
-            'Beat Hip Hop Piano Gigant': 'https://www.webpay.cl/form-pay/329219'
-        };
-
-        // Redirigir directamente al link de WebPay correspondiente
-        if (webpayLinks[beatName]) {
-            window.location.href = webpayLinks[beatName];
-        } else {
-            // Si no se encuentra el beat, redirigir a login como fallback
-            window.location.href = 'login.html?beat=' + encodeURIComponent(beatName);
-        }
-    } catch (error) {
-        console.error('Error verificando stock:', error);
-        alert('Error al verificar disponibilidad. Inténtalo de nuevo.');
+function buyBeat(beatName) {
+    // Encontrar el beat en la lista
+    const beat = tracks.find(t => t.title === beatName);
+    if (beat && beat.paymentLink) {
+        window.location.href = beat.paymentLink;
+    } else {
+        alert('Link de pago no encontrado para este beat.');
     }
 }
 
