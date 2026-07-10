@@ -503,10 +503,13 @@ function hideWaveformTooltip() {
 
 // Cargar beats disponibles y la primera pista al inicio
 document.addEventListener('DOMContentLoaded', async () => {
+    // GitHub Pages es estático: /api/beats normalmente fallará.
+    // Igual intentamos API; si falla, loadTracksFromApi ya hace fallback.
     await loadTracksFromApi();
     loadAvailableBeats();
     if (tracks.length > 0) {
         loadTrack(currentTrackIndex);
     }
 });
+
 
