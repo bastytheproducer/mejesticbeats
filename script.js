@@ -1,4 +1,4 @@
-// @ts-nocheck
+S// @ts-nocheck
 const audioPlayer = document.getElementById('audio-player');
 const playPauseBtn = document.getElementById('play-pause-btn');
 const prevBtn = document.getElementById('prev-btn');
@@ -20,58 +20,58 @@ let previousVolume = 1;
 let canvasContext = waveformCanvas.getContext('2d');
 let audioBuffer = null;
 let waveformData = [];
+let isLoadingWaveform = false;
+let pendingProgressPercent = 0;
 
 let currentTrackIndex = 0;
-const tracks = [
+
+// Tracks cargados desde la API (fallback opcional)
+let tracks = [];
+const tracksFallback = [
     {
         title: 'Beat Verano Reggaeton',
         genre: 'Reggaeton',
         src: 'BEATS/BEAT%20VERANO%20REGGEATON.mp3',
         art: 'Caratulas%20de%20lo%20beats/beat%20verano%20reggeaton.png',
-        price: '$20.000 CLP',
-        paymentLink: 'https://www.webpay.cl/form-pay/329024'
+        price: '$20.000 CLP'
     },
     {
         title: 'Beat 2025 Verano Trap',
         genre: 'Trap',
         src: 'BEATS/BEAT%202025%20VERANO%20TRAP%20HOUSE.mp3',
         art: 'Caratulas%20de%20lo%20beats/Beat%202025%20verano%20trap.png',
-        price: '$25.000 CLP',
-        paymentLink: 'https://www.webpay.cl/form-pay/329189'
+        price: '$25.000 CLP'
     },
     {
         title: 'Beat Rellax Reggaeton',
         genre: 'Reggaeton Relax',
         src: 'BEATS/BEAT%20RELLAX%20REGGEATON.mp3',
         art: 'Caratulas%20de%20lo%20beats/beat%20rellax%20reggeaton.png',
-        price: '$22.000 CLP',
-        paymentLink: 'https://www.webpay.cl/form-pay/329218'
+        price: '$22.000 CLP'
     },
     {
         title: 'Beat Hip Hop Piano Gigant',
         genre: 'Hip Hop',
         src: 'BEATS/BEAT%20HIP%20HOP%20PIANO%20GIGANT.mp3',
         art: 'Caratulas%20de%20lo%20beats/beat%20hip%20hop%20piano%20gigant.jpg',
-        price: '$28.000 CLP',
-        paymentLink: 'https://www.webpay.cl/form-pay/329219'
+        price: '$28.000 CLP'
     },
     {
         title: 'Beat Sin Frontera',
         genre: 'Instrumental',
         src: 'BEATS/BEAT%20SIN%20FRONTERA.mp3',
         art: 'Caratulas%20de%20lo%20beats/beat%20sin%20frontera.png',
-        price: '$30.000 CLP',
-        paymentLink: 'https://www.webpay.cl/form-pay/329220'
+        price: '$30.000 CLP'
     },
     {
         title: 'Beat Trap Navideño Chilling',
         genre: 'Trap Navideño',
         src: 'BEATS/BEAT%20TRAP%20NAVIDEÑO%20CHILLING.mp3',
         art: 'Caratulas%20de%20lo%20beats/beat%20trap%20navideño%20chilling.png',
-        price: '$26.000 CLP',
-        paymentLink: 'https://www.webpay.cl/form-pay/329222'
+        price: '$26.000 CLP'
     }
 ];
+
 
 function loadTrack(index) {
     const track = tracks[index];
@@ -137,14 +137,17 @@ function setWaveformProgress(e) {
     audioPlayer.currentTime = (clickX / width) * duration;
 }
 
-function generateWaveform(audioBuffer) {
+function generateWaveform(audioBuffer, progressPercent = 0) {
     const rawData = audioBuffer.getChannelData(0);
-    const samples = 200; // Number of bars in the waveform
+
+    // Ajuste dinámico: menos barras = menos CPU (tipo “2077 HUD” eficiente)
+    const samples = Math.max(120, Math.floor(waveformCanvas.width / 3));
     const blockSize = Math.floor(rawData.length / samples);
+
     waveformData = [];
 
     for (let i = 0; i < samples; i++) {
-        let blockStart = blockSize * i;
+        const blockStart = blockSize * i;
         let sum = 0;
         for (let j = 0; j < blockSize; j++) {
             sum += Math.abs(rawData[blockStart + j]);
@@ -152,10 +155,11 @@ function generateWaveform(audioBuffer) {
         waveformData[i] = sum / blockSize;
     }
 
-    drawWaveform();
+    drawWaveform(progressPercent);
 }
 
 function drawWaveform(progressPercent = 0) {
+
     const canvas = waveformCanvas;
     const ctx = canvasContext;
     const width = canvas.width;
@@ -168,30 +172,64 @@ function drawWaveform(progressPercent = 0) {
     const progressIndex = Math.floor((progressPercent / 100) * waveformData.length);
 
     waveformData.forEach((amplitude, index) => {
-        const barHeight = (amplitude / maxAmplitude) * height * 0.8;
+        const normalized = amplitude / (maxAmplitude || 1);
+        const barHeight = normalized * height * 0.85;
         const x = index * barWidth;
         const y = (height - barHeight) / 2;
 
-        // Color based on progress: green for played, white for unplayed
-        ctx.fillStyle = index < progressIndex ? '#4ecdc4' : 'rgba(255, 255, 255, 0.3)';
+        // “2077 HUD”: cian jugado + blanco holográfico
+        if (index < progressIndex) {
+            ctx.fillStyle = '#4ecdc4';
+            ctx.shadowColor = 'rgba(78, 205, 196, 0.65)';
+            ctx.shadowBlur = 10;
+        } else {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+            ctx.shadowColor = 'rgba(255,255,255,0.0)';
+            ctx.shadowBlur = 0;
+        }
 
-        ctx.fillRect(x, y, barWidth - 1, barHeight);
+        // Bordes más “scanner-like”
+        ctx.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
+
+        // Línea micro adicional
+        if (index < progressIndex && (index % 6 === 0)) {
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = '#b7fff6';
+            ctx.fillRect(x, y + barHeight * 0.35, Math.max(1, barWidth - 1), 2);
+            ctx.globalAlpha = 1;
+        }
     });
+
+    // Limpieza shadow
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
 }
 
+
 async function loadAudioBuffer(url) {
+    if (isLoadingWaveform) return;
+    isLoadingWaveform = true;
+
+    // Guardar progreso para no “resetea” la aguja visual al recalcular
+    const { currentTime, duration } = audioPlayer;
+    const progressPercent = duration > 0 ? (currentTime / duration) * 100 : pendingProgressPercent;
+    pendingProgressPercent = progressPercent;
+
     try {
         const response = await fetch(url);
         const arrayBuffer = await response.arrayBuffer();
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        generateWaveform(audioBuffer);
+        generateWaveform(audioBuffer, progressPercent);
     } catch (error) {
         console.error('Error loading audio buffer:', error);
         // Fallback: draw a simple placeholder waveform
         drawPlaceholderWaveform();
+    } finally {
+        isLoadingWaveform = false;
     }
 }
+
 
 function drawPlaceholderWaveform() {
     const canvas = waveformCanvas;
@@ -293,6 +331,35 @@ document.querySelectorAll('.play-btn').forEach((btn, index) => {
     });
 });
 
+async function loadTracksFromApi() {
+    try {
+        const resp = await fetch('/api/beats');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+
+        // API solo trae name/price/genre/image; para mantener el reproductor con MP3 locales
+        // cargamos src/art desde el fallback por nombre.
+        const byTitle = new Map(tracksFallback.map(t => [t.title, t]));
+
+        tracks = (data.beats || [])
+            .map(b => {
+                const f = byTitle.get(b.name);
+                if (!f) return null;
+                return {
+                    title: b.name,
+                    genre: b.genre,
+                    src: f.src,
+                    art: b.image || f.art,
+                    price: b.price
+                };
+            })
+            .filter(Boolean);
+    } catch (e) {
+        console.warn('Falling back to local tracks:', e);
+        tracks = tracksFallback;
+    }
+}
+
 function loadAvailableBeats() {
     const trackList = document.getElementById('track-list');
     trackList.innerHTML = '';
@@ -302,7 +369,7 @@ function loadAvailableBeats() {
         return;
     }
 
-    tracks.forEach((beat, index) => {
+    tracks.forEach((beat) => {
         const trackDiv = document.createElement('div');
         trackDiv.className = 'track';
         trackDiv.setAttribute('data-src', beat.src);
@@ -318,38 +385,67 @@ function loadAvailableBeats() {
             </div>
             <div class="controls">
                 <button class="play-btn">▶</button>
-                <button class="buy-btn" onclick="buyBeat('${beat.title}')">Comprar Ahora</button>
+                <button class="buy-btn" data-buy="${beat.title}">Comprar Ahora</button>
             </div>
         `;
 
         trackList.appendChild(trackDiv);
     });
 
-    // Re-inicializar event listeners para los nuevos botones
-    document.querySelectorAll('.play-btn').forEach((btn, index) => {
-        btn.addEventListener('click', () => {
-            const trackDivs = document.querySelectorAll('.track');
-            currentTrackIndex = Array.from(trackDivs).indexOf(btn.closest('.track'));
+    // Event listeners por cada tarjeta
+    document.querySelectorAll('.track').forEach((trackDiv, idx) => {
+        const playBtn = trackDiv.querySelector('.play-btn');
+        const buyBtn = trackDiv.querySelector('.buy-btn');
+
+        playBtn.addEventListener('click', () => {
+            currentTrackIndex = idx;
             loadTrack(currentTrackIndex);
             playTrack();
+        });
+
+        buyBtn.addEventListener('click', () => {
+            buyBeat(buyBtn.getAttribute('data-buy'));
         });
     });
 }
 
-function buyBeat(beatName) {
-    // Encontrar el beat en la lista
-    const beat = tracks.find(t => t.title === beatName);
-    if (beat && beat.paymentLink) {
-        window.location.href = beat.paymentLink;
-    } else {
-        alert('Link de pago no encontrado para este beat.');
+
+async function buyBeat(beatName) {
+    try {
+        const beat = tracks.find(t => t.title === beatName);
+        if (!beat) throw new Error('Beat no encontrado');
+
+        // Stock check (opcional pero recomendado)
+        const stockResp = await fetch('/api/check_stock/' + encodeURIComponent(beatName));
+        if (!stockResp.ok) throw new Error('Beat no disponible');
+        const stock = await stockResp.json();
+        if (!stock.available) {
+            alert('Este beat ya no está disponible.');
+            return;
+        }
+
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            // Ir a login/checkout asegurando beat
+            window.location.href = 'login.html?beat=' + encodeURIComponent(beatName);
+            return;
+        }
+
+        // Ir al checkout interno (Mercado Pago vía /api/create_preference)
+        window.location.href = 'checkout.html?beat=' + encodeURIComponent(beatName);
+    } catch (e) {
+        console.error(e);
+        alert('No se pudo iniciar la compra: ' + (e.message || 'Error'));
     }
 }
 
+
 function buyCurrentBeat() {
     const currentBeat = tracks[currentTrackIndex];
+    if (!currentBeat) return;
     buyBeat(currentBeat.title);
 }
+
 
 // Event listener para el botón de compra en el reproductor
 document.getElementById('buy-current-btn').addEventListener('click', buyCurrentBeat);
@@ -406,7 +502,11 @@ function hideWaveformTooltip() {
 }
 
 // Cargar beats disponibles y la primera pista al inicio
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadTracksFromApi();
     loadAvailableBeats();
-    loadTrack(currentTrackIndex);
+    if (tracks.length > 0) {
+        loadTrack(currentTrackIndex);
+    }
 });
+

@@ -26,11 +26,13 @@
                 </div>
                     <div class="progress-container">
                         <span id="current-time">0:00</span>
-                        <div id="waveform-container">
+                        <div id="waveform-container" aria-label="Seek en la onda" role="application">
                             <canvas id="waveform-canvas" width="600" height="60"></canvas>
+                            <div id="waveform-glow" aria-hidden="true"></div>
                         </div>
                         <span id="duration">0:00</span>
                     </div>
+
                     <div class="scrubber-container">
                         <div id="progress-bar" class="progress-bar">
                             <div class="progress-fill"></div>
