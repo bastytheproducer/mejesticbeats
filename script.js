@@ -1,4 +1,4 @@
-S// @ts-nocheck
+// @ts-nocheck
 const audioPlayer = document.getElementById('audio-player');
 const playPauseBtn = document.getElementById('play-pause-btn');
 const prevBtn = document.getElementById('prev-btn');
