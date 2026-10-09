@@ -26,6 +26,8 @@ function showForgotPassword() {
 }
 
 function initializeGoogleSignIn() {
+    // Solo en la página de inicio de sesión, y solo si cargó el script de Google
+    if (!document.getElementById('google-login-button') || typeof google === 'undefined') return;
     // Inicializar Google Sign-In para login
     google.accounts.id.initialize({
         client_id: '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com',
@@ -128,7 +130,7 @@ function decodeJwtResponse(token) {
 
 
 // Manejar el formulario de login
-document.getElementById('loginForm').addEventListener('submit', function(e) {
+document.getElementById('loginForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
 
     const email = document.getElementById('email').value;
@@ -183,7 +185,7 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
 });
 
 // Manejar el formulario de registro
-document.getElementById('registerFormElement').addEventListener('submit', function(e) {
+document.getElementById('registerFormElement')?.addEventListener('submit', function(e) {
     e.preventDefault();
 
     const name = document.getElementById('regName').value;
@@ -258,7 +260,7 @@ function togglePasswordVisibility(inputId) {
 }
 
 // Manejar el formulario de recuperación de contraseña
-document.getElementById('forgotPasswordFormElement').addEventListener('submit', function(e) {
+document.getElementById('forgotPasswordFormElement')?.addEventListener('submit', function(e) {
     e.preventDefault();
 
     const email = document.getElementById('forgotEmail').value;

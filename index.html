@@ -3,56 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAJESTIC BEATS - Tienda de Beats</title>
+    <title>Majestic Beats — Beats exclusivos de reggaeton, trap y hip hop</title>
+    <meta name="description" content="Beats exclusivos de reggaeton, trap y hip hop. Escucha cada beat completo, cómpralo y descárgalo en MP3. Cada beat se vende una sola vez.">
+    <meta property="og:title" content="Majestic Beats">
+    <meta property="og:description" content="Beats exclusivos de reggaeton, trap y hip hop. Cada beat se vende una sola vez.">
+    <meta property="og:image" content="covers/majestic-beats.jpg">
+    <meta name="theme-color" content="#130a2e">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23130a2e'/%3E%3Cpath d='M6 23h20l2-13-6.5 5L16 7l-5.5 8L4 10z' fill='%23ff9a3d'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="base.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>MAJESTIC BEATS</h1>
-            <p>Tu tienda de beats exclusivos</p>
-        </header>
-        <main>
-            <div class="track-list" id="track-list">
-                <!-- Los beats se cargarán dinámicamente desde la API -->
-            </div>
-            <div class="player">
-                <div class="now-playing">
-                    <img id="current-art" src="https://via.placeholder.com/200x200/333/fff?text=Now+Playing" alt="Now Playing">
-                    <div class="track-details">
-                        <h4 id="current-title">Selecciona un beat</h4>
-                        <p id="current-genre">-</p>
-                    </div>
-                </div>
-                    <div class="progress-container">
-                        <span id="current-time">0:00</span>
-                        <div id="waveform-container" aria-label="Seek en la onda" role="application">
-                            <canvas id="waveform-canvas" width="600" height="60"></canvas>
-                            <div id="waveform-glow" aria-hidden="true"></div>
-                        </div>
-                        <span id="duration">0:00</span>
-                    </div>
+    <a class="skip-link" href="#catalogo">Ir al catálogo</a>
 
-                    <div class="scrubber-container">
-                        <div id="progress-bar" class="progress-bar">
-                            <div class="progress-fill"></div>
-                            <div class="progress-thumb"></div>
-                        </div>
-                    </div>
-                    <div class="volume-container">
-                        <button id="mute-btn" class="volume-icon">🔊</button>
-                        <input type="range" id="volume-bar" min="0" max="1" value="1" step="0.01">
-                    </div>
-                <div class="player-controls">
-                    <button id="prev-btn">⏮</button>
-                    <button id="play-pause-btn">▶</button>
-                    <button id="next-btn">⏭</button>
-                    <button id="buy-current-btn" class="buy-btn">Comprar Este Beat</button>
+    <header class="site-header">
+        <div class="wrap site-header-inner">
+            <a class="brand" href="index.html" aria-label="Majestic Beats, inicio">
+                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 25h22l2.4-15-7.4 5.6L16 6l-6 9.6L2.6 10z" fill="#ff9a3d"/></svg>
+                Majestic Beats
+            </a>
+            <nav class="site-nav" aria-label="Principal">
+                <a href="#catalogo">Catálogo</a>
+                <a href="#como-funciona">Cómo funciona</a>
+                <a href="#preguntas">Preguntas</a>
+                <a href="login.html" id="login-link" hidden>Iniciar sesión</a>
+                <button type="button" id="logout-btn" class="link-btn" hidden>Cerrar sesión</button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero wrap">
+            <div class="hero-copy">
+                <h1>Beats exclusivos. Cada uno se vende una sola vez.</h1>
+                <p class="hero-lead">Reggaeton, trap y hip hop listos para grabar. Escucha el beat completo, cómpralo y descárgalo en MP3: desde ese momento sale del catálogo y es solo tuyo.</p>
+                <div class="hero-actions">
+                    <button type="button" class="btn-primary" id="hero-play">
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                        <span id="hero-play-label">Escuchar ahora</span>
+                    </button>
+                    <a class="btn-secondary" href="#catalogo">Ver los beats</a>
                 </div>
-                <audio id="audio-player"></audio>
             </div>
-        </main>
+
+            <div class="stage" aria-hidden="true">
+                <div class="sun"></div>
+                <div class="vinyl">
+                    <img id="vinyl-label" src="covers/verano-reggaeton.webp" alt="">
+                </div>
+                <img class="stage-cover" id="stage-cover" src="covers/verano-reggaeton.webp" alt="" width="720" height="720">
+            </div>
+        </section>
+
+        <section class="catalog wrap" id="catalogo" aria-labelledby="catalogo-titulo">
+            <div class="section-head">
+                <h2 id="catalogo-titulo">Catálogo</h2>
+                <div class="filters" id="filters" role="group" aria-label="Filtrar por género"></div>
+            </div>
+            <div class="track-list" id="track-list" aria-live="polite">
+                <p class="empty">Cargando beats…</p>
+            </div>
+        </section>
+
+        <section class="how wrap" id="como-funciona" aria-labelledby="como-titulo">
+            <h2 id="como-titulo">Cómo funciona</h2>
+            <ol class="steps">
+                <li>
+                    <h3>Escucha</h3>
+                    <p>Reproduce cada beat completo, sin cortes, las veces que quieras.</p>
+                </li>
+                <li>
+                    <h3>Compra</h3>
+                    <p>Crea tu cuenta y paga con Mercado Pago. Los precios están en pesos chilenos.</p>
+                </li>
+                <li>
+                    <h3>Descarga</h3>
+                    <p>Bajas tu MP3 al confirmar el pago y el beat deja de estar a la venta.</p>
+                </li>
+            </ol>
+        </section>
+
+        <section class="faq wrap" id="preguntas" aria-labelledby="faq-titulo">
+            <h2 id="faq-titulo">Preguntas frecuentes</h2>
+            <div class="faq-list">
+                <details>
+                    <summary>¿Qué significa que el beat es exclusivo?</summary>
+                    <p>Cada beat tiene una sola copia a la venta. Cuando alguien lo compra, se retira del catálogo y nadie más puede comprarlo.</p>
+                </details>
+                <details>
+                    <summary>¿Puedo usarlo en una canción que voy a publicar?</summary>
+                    <p>Sí. La compra incluye una licencia de uso personal y comercial. Lo que no puedes hacer es revender o redistribuir el beat por sí solo. El detalle está en los <a href="terms.html">términos del servicio</a>.</p>
+                </details>
+                <details>
+                    <summary>¿En qué formato lo recibo?</summary>
+                    <p>En MP3, el mismo archivo completo que escuchas en el reproductor.</p>
+                </details>
+                <details>
+                    <summary>¿Hay devoluciones?</summary>
+                    <p>No hay reembolsos una vez descargado el beat, así que escúchalo completo antes de comprar.</p>
+                </details>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="wrap site-footer-inner">
+            <p>Majestic Beats</p>
+            <nav aria-label="Legal y contacto">
+                <a href="mailto:altorangofilms@gmail.com">altorangofilms@gmail.com</a>
+                <a href="terms.html">Términos</a>
+                <a href="privacy.html">Privacidad</a>
+            </nav>
+        </div>
+    </footer>
+
+    <!-- Reproductor fijo -->
+    <div class="player" id="player" role="region" aria-label="Reproductor">
+        <div class="wrap player-inner">
+            <div class="now-playing">
+                <img id="current-art" src="covers/verano-reggaeton.webp" alt="" width="56" height="56">
+                <div class="track-details">
+                    <h4 id="current-title">Elige un beat</h4>
+                    <p id="current-genre">&nbsp;</p>
+                </div>
+            </div>
+
+            <div class="player-controls">
+                <button type="button" id="prev-btn" class="ctl" aria-label="Beat anterior">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+                </button>
+                <button type="button" id="play-pause-btn" class="ctl ctl-main" aria-label="Reproducir">
+                    <svg class="icon icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                    <svg class="icon icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+                </button>
+                <button type="button" id="next-btn" class="ctl" aria-label="Beat siguiente">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
+                </button>
+            </div>
+
+            <div class="progress-container">
+                <span id="current-time">0:00</span>
+                <div id="waveform-container" role="slider" tabindex="0" aria-label="Posición en el beat" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <canvas id="waveform-canvas"></canvas>
+                </div>
+                <span id="duration">0:00</span>
+            </div>
+
+            <div class="volume-container">
+                <button type="button" id="mute-btn" class="ctl" aria-label="Silenciar">
+                    <svg class="icon icon-vol" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 5V4L8 9zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+                    <svg class="icon icon-muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 5V4L8 9zm15.6 3 2.1-2.1-1.4-1.4-2.1 2.1-2.1-2.1-1.4 1.4 2.1 2.1-2.1 2.1 1.4 1.4 2.1-2.1 2.1 2.1 1.4-1.4z"/></svg>
+                </button>
+                <input type="range" id="volume-bar" min="0" max="1" value="1" step="0.01" aria-label="Volumen">
+            </div>
+
+            <button type="button" id="buy-current-btn" class="neon-btn">Comprar <span id="buy-current-price"></span></button>
+        </div>
+        <audio id="audio-player" preload="none"></audio>
     </div>
+
+    <!-- Aviso de compra (cuando el pago en línea no está disponible) -->
+    <dialog id="buy-dialog" aria-labelledby="buy-dialog-title">
+        <h2 id="buy-dialog-title">El pago en línea no está disponible ahora</h2>
+        <p>Puedes reservar <strong id="buy-dialog-beat"></strong> escribiéndonos por correo. Te respondemos con los datos para pagar y te enviamos el MP3.</p>
+        <div class="dialog-actions">
+            <a class="btn-primary" id="buy-dialog-mail" href="mailto:altorangofilms@gmail.com">Reservar por correo</a>
+            <button type="button" class="btn-secondary" id="buy-dialog-close">Seguir escuchando</button>
+        </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
     <script src="script.js"></script>
 </body>
 </html>

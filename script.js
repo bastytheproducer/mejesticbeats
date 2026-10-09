@@ -1,515 +1,547 @@
 // @ts-nocheck
-const audioPlayer = document.getElementById('audio-player');
-const playPauseBtn = document.getElementById('play-pause-btn');
-const prevBtn = document.getElementById('prev-btn');
-const nextBtn = document.getElementById('next-btn');
-const progressBar = document.getElementById('progress-bar');
-const volumeBar = document.getElementById('volume-bar');
-const muteBtn = document.getElementById('mute-btn');
-const currentTimeEl = document.getElementById('current-time');
-const durationEl = document.getElementById('duration');
-const currentTitle = document.getElementById('current-title');
-const currentGenre = document.getElementById('current-genre');
-const currentArt = document.getElementById('current-art');
-const waveformCanvas = document.getElementById('waveform-canvas');
-const waveformContainer = document.getElementById('waveform-container');
+// Majestic Beats — catálogo, reproductor y compra.
 
-let isMuted = false;
-let previousVolume = 1;
+const CONTACT_EMAIL = 'altorangofilms@gmail.com';
 
-let canvasContext = waveformCanvas.getContext('2d');
-let audioBuffer = null;
-let waveformData = [];
-let isLoadingWaveform = false;
-let pendingProgressPercent = 0;
-
-let currentTrackIndex = 0;
-
-// Tracks cargados desde la API (fallback opcional)
-let tracks = [];
+// Catálogo local. Si el servidor responde en /api/beats se usa su lista
+// (precio, género y disponibilidad); el audio y las carátulas siempre salen de aquí.
 const tracksFallback = [
     {
         title: 'Beat Verano Reggaeton',
         genre: 'Reggaeton',
         src: 'BEATS/BEAT%20VERANO%20REGGEATON.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20verano%20reggeaton.png',
+        art: 'covers/verano-reggaeton.webp',
         price: '$20.000 CLP'
     },
     {
         title: 'Beat 2025 Verano Trap',
         genre: 'Trap',
         src: 'BEATS/BEAT%202025%20VERANO%20TRAP%20HOUSE.mp3',
-        art: 'Caratulas%20de%20lo%20beats/Beat%202025%20verano%20trap.png',
+        art: 'covers/verano-trap-2025.webp',
         price: '$25.000 CLP'
     },
     {
         title: 'Beat Rellax Reggaeton',
         genre: 'Reggaeton Relax',
         src: 'BEATS/BEAT%20RELLAX%20REGGEATON.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20rellax%20reggeaton.png',
+        art: 'covers/rellax-reggaeton.webp',
         price: '$22.000 CLP'
     },
     {
         title: 'Beat Hip Hop Piano Gigant',
         genre: 'Hip Hop',
         src: 'BEATS/BEAT%20HIP%20HOP%20PIANO%20GIGANT.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20hip%20hop%20piano%20gigant.jpg',
+        art: 'covers/hip-hop-piano-gigant.webp',
         price: '$28.000 CLP'
     },
     {
         title: 'Beat Sin Frontera',
         genre: 'Instrumental',
         src: 'BEATS/BEAT%20SIN%20FRONTERA.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20sin%20frontera.png',
+        art: 'covers/sin-frontera.webp',
         price: '$30.000 CLP'
     },
     {
         title: 'Beat Trap Navideño Chilling',
         genre: 'Trap Navideño',
-        src: 'BEATS/BEAT%20TRAP%20NAVIDEÑO%20CHILLING.mp3',
-        art: 'Caratulas%20de%20lo%20beats/beat%20trap%20navideño%20chilling.png',
+        src: 'BEATS/BEAT%20TRAP%20NAVIDE%C3%91O%20CHILLING.mp3',
+        art: 'covers/trap-navideno-chilling.webp',
         price: '$26.000 CLP'
     }
 ];
 
+const GENRE_FAMILIES = ['Reggaeton', 'Trap', 'Hip Hop', 'Instrumental'];
 
-function loadTrack(index) {
-    const track = tracks[index];
-    audioPlayer.src = track.src;
-    currentTitle.textContent = track.title;
-    currentGenre.textContent = track.genre;
-    currentArt.src = track.art;
-    audioPlayer.load();
+const $ = (id) => document.getElementById(id);
+const audioPlayer = $('audio-player');
+const playPauseBtn = $('play-pause-btn');
+const prevBtn = $('prev-btn');
+const nextBtn = $('next-btn');
+const volumeBar = $('volume-bar');
+const muteBtn = $('mute-btn');
+const currentTimeEl = $('current-time');
+const durationEl = $('duration');
+const currentTitle = $('current-title');
+const currentGenre = $('current-genre');
+const currentArt = $('current-art');
+const waveformCanvas = $('waveform-canvas');
+const waveformContainer = $('waveform-container');
+const trackList = $('track-list');
+const filtersEl = $('filters');
+const heroPlayBtn = $('hero-play');
+const heroPlayLabel = $('hero-play-label');
+const buyCurrentBtn = $('buy-current-btn');
+const buyCurrentPrice = $('buy-current-price');
+const buyDialog = $('buy-dialog');
+const toastEl = $('toast');
 
-    // Load waveform for the track
-    loadAudioBuffer(track.src);
-}
+let tracks = [];
+let apiOnline = false;
+let currentTrackIndex = 0;
+let trackLoaded = false;
+let activeFilter = 'Todos';
+let previousVolume = 1;
 
-function playTrack() {
-    audioPlayer.play();
-    playPauseBtn.textContent = '⏸';
-}
-
-function pauseTrack() {
-    audioPlayer.pause();
-    playPauseBtn.textContent = '▶';
-}
-
-function updateProgress() {
-    const { currentTime, duration } = audioPlayer;
-    const progressPercent = (currentTime / duration) * 100;
-    progressBar.value = progressPercent;
-    currentTimeEl.textContent = formatTime(currentTime);
-    durationEl.textContent = formatTime(duration);
-
-    // Update custom progress bar
-    const progressFill = document.querySelector('.progress-fill');
-    const progressThumb = document.querySelector('.progress-thumb');
-    if (progressFill && progressThumb) {
-        progressFill.style.width = progressPercent + '%';
-        progressThumb.style.left = progressPercent + '%';
-    }
-
-    // Update waveform with progress
-    if (duration > 0) {
-        drawWaveform(progressPercent);
-    }
-}
-
+// ---------- Utilidades ----------
 function formatTime(time) {
+    if (!Number.isFinite(time) || time < 0) return '0:00';
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function setProgress(e) {
-    const width = this.clientWidth;
-    const clickX = e.offsetX;
-    const duration = audioPlayer.duration;
-    audioPlayer.currentTime = (clickX / width) * duration;
+function displayName(title) {
+    return title.replace(/^Beat\s+/i, '');
 }
 
-function setWaveformProgress(e) {
-    const rect = waveformContainer.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    const duration = audioPlayer.duration;
-    audioPlayer.currentTime = (clickX / width) * duration;
+function shortPrice(price) {
+    return String(price).replace(/\s*CLP$/i, '');
 }
 
-function generateWaveform(audioBuffer, progressPercent = 0) {
-    const rawData = audioBuffer.getChannelData(0);
-
-    // Ajuste dinámico: menos barras = menos CPU (tipo “2077 HUD” eficiente)
-    const samples = Math.max(120, Math.floor(waveformCanvas.width / 3));
-    const blockSize = Math.floor(rawData.length / samples);
-
-    waveformData = [];
-
-    for (let i = 0; i < samples; i++) {
-        const blockStart = blockSize * i;
-        let sum = 0;
-        for (let j = 0; j < blockSize; j++) {
-            sum += Math.abs(rawData[blockStart + j]);
-        }
-        waveformData[i] = sum / blockSize;
-    }
-
-    drawWaveform(progressPercent);
+function genreFamily(genre) {
+    return GENRE_FAMILIES.find((g) => genre.toLowerCase().includes(g.toLowerCase())) || genre;
 }
 
-function drawWaveform(progressPercent = 0) {
-
-    const canvas = waveformCanvas;
-    const ctx = canvasContext;
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-
-    const barWidth = width / waveformData.length;
-    const maxAmplitude = Math.max(...waveformData);
-    const progressIndex = Math.floor((progressPercent / 100) * waveformData.length);
-
-    waveformData.forEach((amplitude, index) => {
-        const normalized = amplitude / (maxAmplitude || 1);
-        const barHeight = normalized * height * 0.85;
-        const x = index * barWidth;
-        const y = (height - barHeight) / 2;
-
-        // “2077 HUD”: cian jugado + blanco holográfico
-        if (index < progressIndex) {
-            ctx.fillStyle = '#4ecdc4';
-            ctx.shadowColor = 'rgba(78, 205, 196, 0.65)';
-            ctx.shadowBlur = 10;
-        } else {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
-            ctx.shadowColor = 'rgba(255,255,255,0.0)';
-            ctx.shadowBlur = 0;
-        }
-
-        // Bordes más “scanner-like”
-        ctx.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
-
-        // Línea micro adicional
-        if (index < progressIndex && (index % 6 === 0)) {
-            ctx.globalAlpha = 0.35;
-            ctx.fillStyle = '#b7fff6';
-            ctx.fillRect(x, y + barHeight * 0.35, Math.max(1, barWidth - 1), 2);
-            ctx.globalAlpha = 1;
-        }
-    });
-
-    // Limpieza shadow
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
-
-async function loadAudioBuffer(url) {
-    if (isLoadingWaveform) return;
-    isLoadingWaveform = true;
-
-    // Guardar progreso para no “resetea” la aguja visual al recalcular
-    const { currentTime, duration } = audioPlayer;
-    const progressPercent = duration > 0 ? (currentTime / duration) * 100 : pendingProgressPercent;
-    pendingProgressPercent = progressPercent;
-
-    try {
-        const response = await fetch(url);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        generateWaveform(audioBuffer, progressPercent);
-    } catch (error) {
-        console.error('Error loading audio buffer:', error);
-        // Fallback: draw a simple placeholder waveform
-        drawPlaceholderWaveform();
-    } finally {
-        isLoadingWaveform = false;
-    }
+let toastTimer;
+function showToast(message) {
+    toastEl.textContent = message;
+    toastEl.classList.add('is-visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('is-visible'), 4200);
 }
 
-
-function drawPlaceholderWaveform() {
-    const canvas = waveformCanvas;
-    const ctx = canvasContext;
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-
-    for (let i = 0; i < 100; i++) {
-        const barHeight = Math.random() * height * 0.6 + height * 0.2;
-        const x = (width / 100) * i;
-        const y = (height - barHeight) / 2;
-        ctx.fillRect(x, y, width / 100 - 1, barHeight);
-    }
-}
-
-playPauseBtn.addEventListener('click', () => {
-    if (audioPlayer.paused) {
-        playTrack();
-    } else {
-        pauseTrack();
-    }
-});
-
-prevBtn.addEventListener('click', () => {
-    currentTrackIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
-    loadTrack(currentTrackIndex);
-    playTrack();
-});
-
-nextBtn.addEventListener('click', () => {
-    currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
-    loadTrack(currentTrackIndex);
-    playTrack();
-});
-
-audioPlayer.addEventListener('timeupdate', updateProgress);
-audioPlayer.addEventListener('loadedmetadata', () => {
-    durationEl.textContent = formatTime(audioPlayer.duration);
-});
-
-progressBar.addEventListener('input', (e) => {
-    const duration = audioPlayer.duration;
-    audioPlayer.currentTime = (e.target.value / 100) * duration;
-});
-
-// Custom progress bar click handler
-const customProgressBar = document.querySelector('.progress-bar');
-if (customProgressBar) {
-    customProgressBar.addEventListener('click', (e) => {
-        const rect = customProgressBar.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const width = rect.width;
-        const duration = audioPlayer.duration;
-        audioPlayer.currentTime = (clickX / width) * duration;
-    });
-}
-
-volumeBar.addEventListener('input', (e) => {
-    audioPlayer.volume = e.target.value;
-    updateVolumeBar();
-    if (audioPlayer.volume > 0 && isMuted) {
-        isMuted = false;
-        muteBtn.textContent = '🔊';
-    }
-});
-
-function updateVolumeBar() {
-    const volumePercent = (audioPlayer.volume * 100) + '%';
-    volumeBar.style.setProperty('--value', volumePercent);
-}
-
-muteBtn.addEventListener('click', () => {
-    if (isMuted) {
-        // Unmute
-        audioPlayer.volume = previousVolume;
-        volumeBar.value = previousVolume;
-        updateVolumeBar();
-        muteBtn.textContent = '🔊';
-        isMuted = false;
-    } else {
-        // Mute
-        previousVolume = audioPlayer.volume;
-        audioPlayer.volume = 0;
-        volumeBar.value = 0;
-        updateVolumeBar();
-        muteBtn.textContent = '🔇';
-        isMuted = true;
-    }
-});
-
-document.querySelectorAll('.play-btn').forEach((btn, index) => {
-    btn.addEventListener('click', () => {
-        currentTrackIndex = index;
-        loadTrack(currentTrackIndex);
-        playTrack();
-    });
-});
-
+// ---------- Carga del catálogo ----------
 async function loadTracksFromApi() {
     try {
         const resp = await fetch('/api/beats');
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
-
-        // API solo trae name/price/genre/image; para mantener el reproductor con MP3 locales
-        // cargamos src/art desde el fallback por nombre.
-        const byTitle = new Map(tracksFallback.map(t => [t.title, t]));
+        const byTitle = new Map(tracksFallback.map((t) => [t.title, t]));
 
         tracks = (data.beats || [])
-            .map(b => {
-                const f = byTitle.get(b.name);
-                if (!f) return null;
-                return {
-                    title: b.name,
-                    genre: b.genre,
-                    src: f.src,
-                    art: b.image || f.art,
-                    price: b.price
-                };
+            .map((b) => {
+                const local = byTitle.get(b.name);
+                if (!local) return null;
+                return { ...local, genre: b.genre || local.genre, price: b.price || local.price };
             })
             .filter(Boolean);
+        apiOnline = true;
     } catch (e) {
-        console.warn('Falling back to local tracks:', e);
-        tracks = tracksFallback;
+        // Sitio estático (por ejemplo GitHub Pages): se muestra el catálogo local.
+        tracks = tracksFallback.slice();
+        apiOnline = false;
     }
 }
 
-function loadAvailableBeats() {
-    const trackList = document.getElementById('track-list');
+function renderFilters() {
+    const families = ['Todos', ...GENRE_FAMILIES.filter((g) => tracks.some((t) => genreFamily(t.genre) === g))];
+    filtersEl.innerHTML = '';
+    if (families.length <= 2) return;
+
+    families.forEach((family) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = family;
+        chip.setAttribute('aria-pressed', String(family === activeFilter));
+        chip.addEventListener('click', () => {
+            activeFilter = family;
+            renderFilters();
+            renderTracks();
+        });
+        filtersEl.appendChild(chip);
+    });
+}
+
+function renderTracks() {
     trackList.innerHTML = '';
 
     if (tracks.length === 0) {
-        trackList.innerHTML = '<p>No hay beats disponibles en este momento.</p>';
+        trackList.innerHTML = '<p class="empty">Todos los beats se vendieron. Vuelve pronto: subimos beats nuevos cada cierto tiempo.</p>';
         return;
     }
 
-    tracks.forEach((beat) => {
-        const trackDiv = document.createElement('div');
-        trackDiv.className = 'track';
-        trackDiv.setAttribute('data-src', beat.src);
+    tracks.forEach((beat, index) => {
+        if (activeFilter !== 'Todos' && genreFamily(beat.genre) !== activeFilter) return;
 
-        trackDiv.innerHTML = `
-            <div class="track-info">
-                <img src="${beat.art}" alt="${beat.title}" class="album-art">
-                <div class="details">
-                    <h3>${beat.title}</h3>
-                    <p>Género: ${beat.genre}</p>
-                    <p>Precio: ${beat.price}</p>
+        const name = escapeHtml(displayName(beat.title));
+        const card = document.createElement('article');
+        card.className = 'track';
+        card.dataset.index = String(index);
+        card.innerHTML = `
+            <button type="button" class="track-cover play-btn" aria-label="Reproducir ${name}">
+                <img src="${beat.art}" alt="Carátula de ${name}" width="720" height="720" loading="lazy">
+                <span class="track-cover-btn" aria-hidden="true">
+                    <svg class="icon icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <svg class="icon icon-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+                </span>
+            </button>
+            <div class="track-body">
+                <div>
+                    <h3>${name}</h3>
+                    <p class="track-genre">${escapeHtml(beat.genre)}</p>
                 </div>
+                <p class="track-price">${escapeHtml(beat.price)}</p>
             </div>
-            <div class="controls">
-                <button class="play-btn">▶</button>
-                <button class="buy-btn" data-buy="${beat.title}">Comprar Ahora</button>
-            </div>
+            <button type="button" class="neon-btn buy-btn">Comprar</button>
         `;
 
-        trackList.appendChild(trackDiv);
+        card.querySelector('.play-btn').addEventListener('click', () => togglePlay(index));
+        card.querySelector('.buy-btn').addEventListener('click', () => buyBeat(beat.title));
+        trackList.appendChild(card);
     });
 
-    // Event listeners por cada tarjeta
-    document.querySelectorAll('.track').forEach((trackDiv, idx) => {
-        const playBtn = trackDiv.querySelector('.play-btn');
-        const buyBtn = trackDiv.querySelector('.buy-btn');
+    syncPlayingState();
+}
 
-        playBtn.addEventListener('click', () => {
-            currentTrackIndex = idx;
-            loadTrack(currentTrackIndex);
-            playTrack();
-        });
+// ---------- Reproductor ----------
+function loadTrack(index) {
+    const track = tracks[index];
+    if (!track) return;
 
-        buyBtn.addEventListener('click', () => {
-            buyBeat(buyBtn.getAttribute('data-buy'));
+    currentTrackIndex = index;
+    trackLoaded = true;
+    audioPlayer.src = track.src;
+    audioPlayer.load();
+    showTrackInfo(track);
+    loadWaveform(track);
+}
+
+function showTrackInfo(track) {
+    currentTitle.textContent = displayName(track.title);
+    currentGenre.textContent = track.genre;
+    currentArt.src = track.art;
+    buyCurrentPrice.textContent = shortPrice(track.price);
+    $('stage-cover').src = track.art;
+    $('vinyl-label').src = track.art;
+    currentTimeEl.textContent = '0:00';
+    durationEl.textContent = '0:00';
+}
+
+function playTrack() {
+    const attempt = audioPlayer.play();
+    if (attempt && attempt.catch) {
+        attempt.catch((error) => {
+            if (error.name !== 'AbortError') showToast('No se pudo reproducir este beat. Intenta de nuevo.');
         });
+    }
+}
+
+function pauseTrack() {
+    audioPlayer.pause();
+}
+
+function togglePlay(index = currentTrackIndex) {
+    if (tracks.length === 0) return;
+
+    if (!trackLoaded || index !== currentTrackIndex) {
+        loadTrack(index);
+        playTrack();
+    } else if (audioPlayer.paused) {
+        playTrack();
+    } else {
+        pauseTrack();
+    }
+}
+
+function stepTrack(direction) {
+    if (tracks.length === 0) return;
+    const next = (currentTrackIndex + direction + tracks.length) % tracks.length;
+    loadTrack(next);
+    playTrack();
+}
+
+function syncPlayingState() {
+    const playing = trackLoaded && !audioPlayer.paused;
+    document.body.classList.toggle('is-playing', playing);
+    playPauseBtn.setAttribute('aria-label', playing ? 'Pausar' : 'Reproducir');
+    heroPlayLabel.textContent = playing ? 'Pausar' : trackLoaded ? 'Seguir escuchando' : 'Escuchar ahora';
+
+    trackList.querySelectorAll('.track').forEach((card) => {
+        const isCurrent = trackLoaded && Number(card.dataset.index) === currentTrackIndex;
+        card.classList.toggle('is-current', isCurrent);
+        card.classList.toggle('is-playing', isCurrent && playing);
+        const name = displayName(tracks[Number(card.dataset.index)].title);
+        card.querySelector('.play-btn').setAttribute('aria-label', (isCurrent && playing ? 'Pausar ' : 'Reproducir ') + name);
     });
 }
 
+function progressPercent() {
+    const { currentTime, duration } = audioPlayer;
+    return duration > 0 ? (currentTime / duration) * 100 : 0;
+}
+
+function updateProgress() {
+    currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+    durationEl.textContent = formatTime(audioPlayer.duration);
+    waveformContainer.setAttribute('aria-valuenow', String(Math.round(progressPercent())));
+    waveformContainer.setAttribute('aria-valuetext', `${formatTime(audioPlayer.currentTime)} de ${formatTime(audioPlayer.duration)}`);
+    drawWaveform();
+}
+
+// ---------- Onda de audio ----------
+const canvasContext = waveformCanvas.getContext('2d');
+const waveformCache = new Map();
+let waveformData = [];
+let waveformRequest = 0;
+let audioContext = null;
+
+// Onda provisional (misma forma siempre para el mismo beat) mientras se analiza el audio.
+function placeholderWaveform(seedText, bars = 160) {
+    let seed = 0;
+    for (const ch of seedText) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+    const data = [];
+    for (let i = 0; i < bars; i++) {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        const noise = seed / 4294967295;
+        const envelope = 0.55 + 0.45 * Math.sin((i / bars) * Math.PI);
+        data.push((0.3 + 0.7 * noise) * envelope);
+    }
+    return data;
+}
+
+function computeWaveform(buffer, bars = 160) {
+    const raw = buffer.getChannelData(0);
+    const blockSize = Math.floor(raw.length / bars) || 1;
+    const stride = Math.max(1, Math.floor(blockSize / 400)); // muestreo: suficiente para dibujar
+    const data = [];
+    for (let i = 0; i < bars; i++) {
+        const start = blockSize * i;
+        let sum = 0;
+        let count = 0;
+        for (let j = 0; j < blockSize; j += stride) {
+            sum += Math.abs(raw[start + j] || 0);
+            count++;
+        }
+        data.push(sum / count);
+    }
+    return data;
+}
+
+async function loadWaveform(track) {
+    const request = ++waveformRequest;
+
+    if (waveformCache.has(track.src)) {
+        waveformData = waveformCache.get(track.src);
+        drawWaveform();
+        return;
+    }
+
+    waveformData = placeholderWaveform(track.title);
+    drawWaveform();
+
+    try {
+        const response = await fetch(track.src);
+        const arrayBuffer = await response.arrayBuffer();
+        audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+        const buffer = await audioContext.decodeAudioData(arrayBuffer);
+        const data = computeWaveform(buffer);
+        waveformCache.set(track.src, data);
+        if (request === waveformRequest) {
+            waveformData = data;
+            drawWaveform();
+        }
+    } catch (error) {
+        // Se mantiene la onda provisional; el audio se reproduce igual.
+        console.warn('No se pudo analizar la onda:', error);
+    }
+}
+
+function resizeCanvas() {
+    const ratio = window.devicePixelRatio || 1;
+    const rect = waveformContainer.getBoundingClientRect();
+    waveformCanvas.width = Math.max(1, Math.round(rect.width * ratio));
+    waveformCanvas.height = Math.max(1, Math.round(rect.height * ratio));
+    drawWaveform();
+}
+
+function drawWaveform() {
+    const ctx = canvasContext;
+    const { width, height } = waveformCanvas;
+    ctx.clearRect(0, 0, width, height);
+    if (waveformData.length === 0 || width < 2) return;
+
+    const ratio = window.devicePixelRatio || 1;
+    const step = 4 * ratio; // 3px de barra + 1px de separación
+    const bars = Math.max(1, Math.floor(width / step));
+    const max = Math.max(...waveformData) || 1;
+    const playedX = (progressPercent() / 100) * width;
+
+    const played = ctx.createLinearGradient(0, 0, width, 0);
+    played.addColorStop(0, '#ff9a3d');
+    played.addColorStop(1, '#ff3d8b');
+
+    for (let i = 0; i < bars; i++) {
+        const sample = waveformData[Math.floor((i / bars) * waveformData.length)] / max;
+        const barHeight = Math.max(2 * ratio, sample * height * 0.92);
+        const x = i * step;
+        ctx.fillStyle = x < playedX ? played : 'rgba(255, 244, 230, 0.26)';
+        ctx.fillRect(x, (height - barHeight) / 2, 3 * ratio, barHeight);
+    }
+}
+
+function seekFromPointer(event) {
+    if (!trackLoaded || !(audioPlayer.duration > 0)) return;
+    const rect = waveformContainer.getBoundingClientRect();
+    const fraction = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    audioPlayer.currentTime = fraction * audioPlayer.duration;
+    updateProgress();
+}
+
+// ---------- Compra ----------
+function openBuyDialog(beatName) {
+    const name = displayName(beatName);
+    $('buy-dialog-beat').textContent = name;
+    $('buy-dialog-mail').href =
+        `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Quiero comprar el beat ' + name)}` +
+        `&body=${encodeURIComponent('Hola, quiero comprar el beat "' + name + '". ¿Cómo puedo pagarlo?')}`;
+    buyDialog.showModal();
+}
 
 async function buyBeat(beatName) {
-    try {
-        const beat = tracks.find(t => t.title === beatName);
-        if (!beat) throw new Error('Beat no encontrado');
+    const beat = tracks.find((t) => t.title === beatName);
+    if (!beat) return;
 
-        // Stock check (opcional pero recomendado)
+    // Sin servidor de pagos (sitio estático) se ofrece reservar por correo.
+    if (!apiOnline) {
+        openBuyDialog(beatName);
+        return;
+    }
+
+    try {
         const stockResp = await fetch('/api/check_stock/' + encodeURIComponent(beatName));
-        if (!stockResp.ok) throw new Error('Beat no disponible');
+        if (stockResp.status === 404) {
+            showToast('Este beat ya no está disponible.');
+            return;
+        }
+        if (!stockResp.ok) throw new Error('HTTP ' + stockResp.status);
         const stock = await stockResp.json();
         if (!stock.available) {
-            alert('Este beat ya no está disponible.');
+            showToast('Este beat ya se vendió.');
             return;
         }
-
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            // Ir a login/checkout asegurando beat
-            window.location.href = 'login.html?beat=' + encodeURIComponent(beatName);
-            return;
-        }
-
-        // Ir al checkout interno (Mercado Pago vía /api/create_preference)
-        window.location.href = 'checkout.html?beat=' + encodeURIComponent(beatName);
     } catch (e) {
         console.error(e);
-        alert('No se pudo iniciar la compra: ' + (e.message || 'Error'));
+        openBuyDialog(beatName);
+        return;
     }
+
+    const token = localStorage.getItem('auth_token');
+    const page = token ? 'checkout.html' : 'login.html';
+    window.location.href = page + '?beat=' + encodeURIComponent(beatName);
 }
 
+// ---------- Sesión ----------
+function setupSession() {
+    const loginLink = $('login-link');
+    const logoutBtn = $('logout-btn');
+    const hasToken = Boolean(localStorage.getItem('auth_token'));
 
-function buyCurrentBeat() {
-    const currentBeat = tracks[currentTrackIndex];
-    if (!currentBeat) return;
-    buyBeat(currentBeat.title);
+    // Iniciar sesión solo tiene sentido cuando el servidor está disponible.
+    loginLink.hidden = !apiOnline || hasToken;
+    logoutBtn.hidden = !hasToken;
+
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('auth_token');
+        logoutBtn.hidden = true;
+        loginLink.hidden = !apiOnline;
+        showToast('Cerraste sesión.');
+    });
 }
 
-
-// Event listener para el botón de compra en el reproductor
-document.getElementById('buy-current-btn').addEventListener('click', buyCurrentBeat);
-
-// Event listener para clicks en la waveform
-waveformContainer.addEventListener('click', setWaveformProgress);
-
-// Event listener para mouse move en la waveform para mostrar preview
-waveformContainer.addEventListener('mousemove', (e) => {
-    const rect = waveformContainer.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    const duration = audioPlayer.duration;
-    const hoverTime = (clickX / width) * duration;
-
-    // Mostrar tooltip con el tiempo
-    showWaveformTooltip(e, formatTime(hoverTime));
+// ---------- Eventos ----------
+playPauseBtn.addEventListener('click', () => togglePlay());
+heroPlayBtn.addEventListener('click', () => togglePlay());
+prevBtn.addEventListener('click', () => stepTrack(-1));
+nextBtn.addEventListener('click', () => stepTrack(1));
+buyCurrentBtn.addEventListener('click', () => {
+    const beat = tracks[currentTrackIndex];
+    if (beat) buyBeat(beat.title);
 });
 
-// Event listener para mouse leave en la waveform
-waveformContainer.addEventListener('mouseleave', () => {
-    hideWaveformTooltip();
+audioPlayer.addEventListener('play', syncPlayingState);
+audioPlayer.addEventListener('pause', syncPlayingState);
+audioPlayer.addEventListener('timeupdate', updateProgress);
+audioPlayer.addEventListener('loadedmetadata', updateProgress);
+audioPlayer.addEventListener('ended', () => stepTrack(1));
+audioPlayer.addEventListener('error', () => {
+    if (trackLoaded) showToast('No se pudo cargar el audio de este beat.');
 });
 
-// Función para mostrar tooltip en la waveform
-function showWaveformTooltip(e, timeString) {
-    let tooltip = document.getElementById('waveform-tooltip');
-    if (!tooltip) {
-        tooltip = document.createElement('div');
-        tooltip.id = 'waveform-tooltip';
-        tooltip.style.position = 'absolute';
-        tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
-        tooltip.style.color = '#fff';
-        tooltip.style.padding = '4px 8px';
-        tooltip.style.borderRadius = '4px';
-        tooltip.style.fontSize = '12px';
-        tooltip.style.pointerEvents = 'none';
-        tooltip.style.zIndex = '1000';
-        document.body.appendChild(tooltip);
+volumeBar.addEventListener('input', (e) => {
+    audioPlayer.volume = Number(e.target.value);
+    document.body.classList.toggle('is-muted', audioPlayer.volume === 0);
+});
+
+muteBtn.addEventListener('click', () => {
+    if (audioPlayer.volume === 0) {
+        audioPlayer.volume = previousVolume || 1;
+    } else {
+        previousVolume = audioPlayer.volume;
+        audioPlayer.volume = 0;
     }
+    volumeBar.value = String(audioPlayer.volume);
+    const muted = audioPlayer.volume === 0;
+    document.body.classList.toggle('is-muted', muted);
+    muteBtn.setAttribute('aria-label', muted ? 'Activar sonido' : 'Silenciar');
+});
 
-    tooltip.textContent = timeString;
-    tooltip.style.left = e.pageX + 10 + 'px';
-    tooltip.style.top = e.pageY - 30 + 'px';
-    tooltip.style.display = 'block';
-}
+let seeking = false;
+waveformContainer.addEventListener('pointerdown', (e) => {
+    seeking = true;
+    waveformContainer.setPointerCapture(e.pointerId);
+    seekFromPointer(e);
+});
+waveformContainer.addEventListener('pointermove', (e) => {
+    if (seeking) seekFromPointer(e);
+});
+waveformContainer.addEventListener('pointerup', () => {
+    seeking = false;
+});
+waveformContainer.addEventListener('pointercancel', () => {
+    seeking = false;
+});
+waveformContainer.addEventListener('keydown', (e) => {
+    if (!(audioPlayer.duration > 0)) return;
+    if (e.key === 'ArrowRight') audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 5);
+    else if (e.key === 'ArrowLeft') audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
+    else return;
+    e.preventDefault();
+});
 
-// Función para ocultar tooltip
-function hideWaveformTooltip() {
-    const tooltip = document.getElementById('waveform-tooltip');
-    if (tooltip) {
-        tooltip.style.display = 'none';
-    }
-}
+// Barra espaciadora: reproducir o pausar (salvo al escribir o sobre un botón).
+document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space' || buyDialog.open) return;
+    const tag = e.target.tagName;
+    if (['INPUT', 'TEXTAREA', 'BUTTON', 'A', 'SUMMARY', 'SELECT'].includes(tag)) return;
+    e.preventDefault();
+    togglePlay();
+});
 
-// Cargar beats disponibles y la primera pista al inicio
+$('buy-dialog-close').addEventListener('click', () => buyDialog.close());
+buyDialog.addEventListener('click', (e) => {
+    if (e.target === buyDialog) buyDialog.close(); // clic fuera del cuadro
+});
+
+window.addEventListener('resize', resizeCanvas);
+
+// ---------- Inicio ----------
 document.addEventListener('DOMContentLoaded', async () => {
-    // GitHub Pages es estático: /api/beats normalmente fallará.
-    // Igual intentamos API; si falla, loadTracksFromApi ya hace fallback.
     await loadTracksFromApi();
-    loadAvailableBeats();
+    renderFilters();
+    renderTracks();
+    setupSession();
+
     if (tracks.length > 0) {
-        loadTrack(currentTrackIndex);
+        // Se muestra el primer beat, pero su audio no se descarga hasta que se pulse reproducir.
+        showTrackInfo(tracks[0]);
+        waveformData = placeholderWaveform(tracks[0].title);
     }
+    resizeCanvas();
 });
-
-
