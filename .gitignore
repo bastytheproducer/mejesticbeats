@@ -1,0 +1,8 @@
+# Datos y secretos: nunca al repositorio
+users.db
+*.db
+*.pem
+.env
+beats_privados/
+__pycache__/
+*.pyc

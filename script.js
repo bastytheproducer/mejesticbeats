@@ -5,46 +5,47 @@ const CONTACT_EMAIL = 'altorangofilms@gmail.com';
 
 // Catálogo local. Si el servidor responde en /api/beats se usa su lista
 // (precio, género y disponibilidad); el audio y las carátulas siempre salen de aquí.
+// El audio público es un adelanto de 45 segundos: los MP3 completos no están en el sitio.
 const tracksFallback = [
     {
         title: 'Beat Verano Reggaeton',
         genre: 'Reggaeton',
-        src: 'BEATS/BEAT%20VERANO%20REGGEATON.mp3',
+        src: 'previews/verano-reggaeton.mp3',
         art: 'covers/verano-reggaeton.webp',
         price: '$20.000 CLP'
     },
     {
         title: 'Beat 2025 Verano Trap',
         genre: 'Trap',
-        src: 'BEATS/BEAT%202025%20VERANO%20TRAP%20HOUSE.mp3',
+        src: 'previews/verano-trap-2025.mp3',
         art: 'covers/verano-trap-2025.webp',
         price: '$25.000 CLP'
     },
     {
         title: 'Beat Rellax Reggaeton',
         genre: 'Reggaeton Relax',
-        src: 'BEATS/BEAT%20RELLAX%20REGGEATON.mp3',
+        src: 'previews/rellax-reggaeton.mp3',
         art: 'covers/rellax-reggaeton.webp',
         price: '$22.000 CLP'
     },
     {
         title: 'Beat Hip Hop Piano Gigant',
         genre: 'Hip Hop',
-        src: 'BEATS/BEAT%20HIP%20HOP%20PIANO%20GIGANT.mp3',
+        src: 'previews/hip-hop-piano-gigant.mp3',
         art: 'covers/hip-hop-piano-gigant.webp',
         price: '$28.000 CLP'
     },
     {
         title: 'Beat Sin Frontera',
         genre: 'Instrumental',
-        src: 'BEATS/BEAT%20SIN%20FRONTERA.mp3',
+        src: 'previews/sin-frontera.mp3',
         art: 'covers/sin-frontera.webp',
         price: '$30.000 CLP'
     },
     {
         title: 'Beat Trap Navideño Chilling',
         genre: 'Trap Navideño',
-        src: 'BEATS/BEAT%20TRAP%20NAVIDE%C3%91O%20CHILLING.mp3',
+        src: 'previews/trap-navideno-chilling.mp3',
         art: 'covers/trap-navideno-chilling.webp',
         price: '$26.000 CLP'
     }
