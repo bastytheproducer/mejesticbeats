@@ -38,3 +38,19 @@ Nunca subas al repositorio `users.db`, archivos `.pem`, `.env` ni los MP3 comple
 pip install -r requirements.txt
 python server.py   # http://localhost:5000
 ```
+
+## Publicar el servidor en PythonAnywhere (gratis)
+
+1. En una consola Bash de PythonAnywhere:
+
+   ```bash
+   git clone https://github.com/bastytheproducer/mejesticbeats.git
+   pip install --user -r mejesticbeats/requirements.txt
+   ```
+2. Pestaña **Web** → *Add a new web app* → *Manual configuration* (misma versión de Python que usa `pip`).
+3. De vuelta en la consola: `python3 ~/mejesticbeats/deploy/pythonanywhere_setup.py`. Muestra la clave del panel de administración una sola vez.
+4. Pega tu Access Token de Mercado Pago en `~/majestic_data/secrets.py` y pulsa **Reload** en la pestaña Web.
+5. Sube los MP3 completos en `https://TU_USUARIO.pythonanywhere.com/admin.html`.
+6. Pon esa dirección en `config.js` para que la página de GitHub Pages lleve a la tienda.
+
+Para actualizar después: `cd ~/mejesticbeats && git pull` y **Reload**. En el plan gratuito hay que entrar una vez al mes a la pestaña Web y pulsar *Run until 1 month from today*.
