@@ -3,6 +3,12 @@
 
 const CONTACT_EMAIL = 'altorangofilms@gmail.com';
 
+// Dirección del servidor de la tienda (config.js). Vacía = mismo sitio.
+// En GitHub Pages el catálogo consulta la disponibilidad ahí y "Comprar"
+// lleva a esa dirección, donde están el inicio de sesión y el pago.
+const STORE_URL = (window.MAJESTIC_STORE_URL || '').replace(/\/+$/, '');
+const API_BASE = STORE_URL && STORE_URL !== window.location.origin ? STORE_URL : '';
+
 // Catálogo local. Si el servidor responde en /api/beats se usa su lista
 // (precio, género y disponibilidad); el audio y las carátulas siempre salen de aquí.
 // El audio público es un adelanto de 45 segundos: los MP3 completos no están en el sitio.
@@ -120,7 +126,7 @@ function showToast(message) {
 // ---------- Carga del catálogo ----------
 async function loadTracksFromApi() {
     try {
-        const resp = await fetch('/api/beats');
+        const resp = await fetch(API_BASE + '/api/beats');
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
         const byTitle = new Map(tracksFallback.map((t) => [t.title, t]));
@@ -416,7 +422,7 @@ async function buyBeat(beatName) {
     }
 
     try {
-        const stockResp = await fetch('/api/check_stock/' + encodeURIComponent(beatName));
+        const stockResp = await fetch(API_BASE + '/api/check_stock/' + encodeURIComponent(beatName));
         if (stockResp.status === 404) {
             showToast('Este beat ya no está disponible.');
             return;
@@ -433,16 +439,18 @@ async function buyBeat(beatName) {
         return;
     }
 
+    // checkout.html pide iniciar sesión si hace falta
     const token = localStorage.getItem('auth_token');
-    const page = token ? 'checkout.html' : 'login.html';
-    window.location.href = page + '?beat=' + encodeURIComponent(beatName);
+    const page = API_BASE || token ? 'checkout.html' : 'login.html';
+    window.location.href = API_BASE + '/' + page + '?beat=' + encodeURIComponent(beatName);
 }
 
 // ---------- Sesión ----------
 function setupSession() {
     const loginLink = $('login-link');
     const logoutBtn = $('logout-btn');
-    const hasToken = Boolean(localStorage.getItem('auth_token'));
+    const hasToken = !API_BASE && Boolean(localStorage.getItem('auth_token'));
+    if (API_BASE) loginLink.href = API_BASE + '/login.html';
 
     // Iniciar sesión solo tiene sentido cuando el servidor está disponible.
     loginLink.hidden = !apiOnline || hasToken;
