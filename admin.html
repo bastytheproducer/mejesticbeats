@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Administrar beats - Majestic Beats</title>
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="pages.css">
+    <style>
+        .container { max-width: 640px; }
+        .admin-row { padding: 16px 0; border-top: 1px solid var(--line); }
+        .admin-row h3 { margin-bottom: 4px; }
+        .admin-state { color: var(--muted); font-size: 0.94rem; margin-bottom: 10px; }
+        .admin-state.ok { color: var(--cyan); }
+        .admin-row input[type="file"] { color: var(--muted); max-width: 100%; }
+        #admin-message { margin-top: 16px; color: var(--orange); min-height: 1.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-form">
+            <div class="logo">
+                <a class="brand" href="index.html">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 25h22l2.4-15-7.4 5.6L16 6l-6 9.6L2.6 10z" fill="#ff9a3d"/></svg>
+                    Majestic Beats
+                </a>
+            </div>
+            <h2>Administrar beats</h2>
+            <p>Sube aquí el MP3 completo de cada beat. Solo lo recibe quien lo compra.</p>
+
+            <form id="tokenForm">
+                <div class="form-group">
+                    <label for="adminToken">Clave de administrador</label>
+                    <input type="password" id="adminToken" autocomplete="off" required>
+                </div>
+                <button type="submit" class="btn-primary">Ver beats</button>
+            </form>
+
+            <div id="beats"></div>
+            <p id="admin-message" role="status"></p>
+        </div>
+    </div>
+    <script src="admin.js"></script>
+</body>
+</html>

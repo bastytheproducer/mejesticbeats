@@ -1,4 +1,5 @@
 from flask import Flask, send_from_directory, request, jsonify, abort
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import re
 import urllib.parse
@@ -17,7 +18,12 @@ from email.mime.multipart import MIMEMultipart
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
-app = Flask(__name__, static_folder='.')
+# static_folder=None: sin esto Flask publica toda la carpeta del proyecto
+# por una ruta estática propia, saltándose la lista de permitidos.
+app = Flask(__name__, static_folder=None)
+# Detrás del proxy del hosting (Railway): respeta https y el dominio real.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.config['MAX_CONTENT_LENGTH'] = 60 * 1024 * 1024  # tope de subida: 60 MB
 
 # Clave para firmar las sesiones (JWT). Debe venir de la variable de entorno
 # JWT_SECRET_KEY; nunca se deja una clave fija en el código, porque cualquiera
@@ -30,7 +36,16 @@ if not JWT_SECRET_KEY:
 
 # Carpeta con los MP3 completos. No es pública ni va al repositorio:
 # solo se entrega un archivo después de verificar el pago.
-PRIVATE_BEATS_DIR = os.environ.get('PRIVATE_BEATS_DIR', 'beats_privados')
+# DATA_DIR es la carpeta persistente del hosting (en Railway, un volumen
+# montado por ejemplo en /data). Ahí viven la base de datos y los MP3 completos.
+DATA_DIR = os.environ.get('DATA_DIR', '.')
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_PATH = os.path.join(DATA_DIR, 'users.db')
+PRIVATE_BEATS_DIR = os.environ.get('PRIVATE_BEATS_DIR', os.path.join(DATA_DIR, 'beats_privados'))
+os.makedirs(PRIVATE_BEATS_DIR, exist_ok=True)
+
+# Clave para subir los MP3 completos desde admin.html. Sin ella, la subida queda desactivada.
+ADMIN_TOKEN = os.environ.get('ADMIN_TOKEN', '')
 
 # Lo único que el servidor entrega como archivo estático.
 PUBLIC_EXTENSIONS = {'.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico'}
@@ -55,7 +70,7 @@ def add_security_headers(response):
 
 # Database setup
 def init_db():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -111,7 +126,7 @@ def serve_file(filename):
         abort(404)
     ext = os.path.splitext(normalized)[1].lower()
     is_public = ext in PUBLIC_EXTENSIONS or (ext == '.mp3' and parts[0] == PUBLIC_AUDIO_DIR)
-    if not is_public or parts[0] in (PRIVATE_BEATS_DIR, 'BEATS'):
+    if not is_public or parts[0] in ('beats_privados', 'BEATS'):
         abort(404)
     return send_from_directory('.', normalized)
 
@@ -176,7 +191,7 @@ def register():
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
     try:
-        conn = sqlite3.connect('users.db')
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
                   (name, email, password_hash.decode('utf-8')))
@@ -207,7 +222,7 @@ def login():
     if not email or not password:
         return jsonify({'success': False, 'message': 'Email y contraseña son requeridos'}), 400
 
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT id, name, password_hash, reset_token, reset_token_expiry FROM users WHERE email = ?', (email,))
     user = c.fetchone()
@@ -318,7 +333,7 @@ def confirm_payment(payment_id, expected_email=None, expected_beat=None):
     if expected_beat and beat_name != expected_beat:
         return False, 'El pago corresponde a otro beat'
 
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT price, sold, buyer_email FROM beats WHERE name = ?', (beat_name,))
     beat = c.fetchone()
@@ -354,7 +369,7 @@ def create_preference():
 
     # El precio se lee de la base de datos: lo que envíe el navegador no se usa,
     # así nadie puede pagar menos cambiando el monto.
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT price, stock, sold FROM beats WHERE name = ?', (beat_name,))
     beat = c.fetchone()
@@ -473,7 +488,7 @@ def forgot_password():
         return jsonify({'success': False, 'message': 'Email es requerido'}), 400
 
     # Verificar si el usuario existe
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT id FROM users WHERE email = ?', (email,))
     user = c.fetchone()
@@ -520,7 +535,7 @@ def reset_password():
         return jsonify({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres'}), 400
 
     # Verificar token
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT id FROM users WHERE reset_token = ? AND reset_token_expiry > ?',
               (temp_password, datetime.datetime.utcnow()))
@@ -566,7 +581,7 @@ def change_password():
     password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
 
     # Actualizar contraseña y limpiar token temporal
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?',
               (password_hash.decode('utf-8'), user['user_id']))
@@ -581,12 +596,63 @@ def create_transbank_transaction():
     # Transbank todavía no está integrado. Antes devolvía un éxito falso.
     return jsonify({'success': False, 'message': 'Transbank no está disponible por ahora. Usa Mercado Pago.'}), 501
 
+def admin_authorized():
+    sent = request.headers.get('X-Admin-Token', '')
+    return bool(ADMIN_TOKEN) and secrets.compare_digest(sent, ADMIN_TOKEN)
+
+@app.route('/api/admin/beats')
+def admin_list_beats():
+    """Estado de cada beat: si su MP3 completo está en el servidor y si se vendió."""
+    if not admin_authorized():
+        return jsonify({'error': 'No autorizado'}), 401
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT name, file_path, sold, buyer_email FROM beats ORDER BY id')
+    rows = c.fetchall()
+    conn.close()
+    return jsonify({'beats': [{
+        'name': r[0],
+        'file': os.path.basename(r[1]),
+        'uploaded': os.path.exists(os.path.join(PRIVATE_BEATS_DIR, os.path.basename(r[1]))),
+        'sold': bool(r[2]),
+        'buyer_email': r[3]
+    } for r in rows]})
+
+@app.route('/api/admin/upload_beat', methods=['POST'])
+def admin_upload_beat():
+    """Subir el MP3 completo de un beat a la carpeta privada."""
+    if not admin_authorized():
+        return jsonify({'error': 'No autorizado'}), 401
+
+    beat_name = request.form.get('beat', '')
+    upload = request.files.get('file')
+    if not upload:
+        return jsonify({'error': 'Falta el archivo'}), 400
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT file_path FROM beats WHERE name = ?', (beat_name,))
+    beat = c.fetchone()
+    conn.close()
+    if not beat:
+        return jsonify({'error': 'Beat no encontrado'}), 404
+
+    # Solo MP3, y siempre con el nombre que el servidor espera para ese beat
+    header = upload.stream.read(3)
+    upload.stream.seek(0)
+    looks_like_mp3 = header[:3] == b'ID3' or (len(header) >= 2 and header[0] == 0xFF and header[1] & 0xE0 == 0xE0)
+    if not (upload.filename or '').lower().endswith('.mp3') or not looks_like_mp3:
+        return jsonify({'error': 'El archivo debe ser un MP3'}), 400
+
+    upload.save(os.path.join(PRIVATE_BEATS_DIR, os.path.basename(beat[0])))
+    return jsonify({'success': True, 'message': f'MP3 de {beat_name} guardado'})
+
 @app.route('/api/beats')
 def get_beats():
     """Obtener lista de beats disponibles (no vendidos)"""
     import urllib.parse
 
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT name, price, genre, image_path FROM beats WHERE sold = 0 ORDER BY id')
     beats = c.fetchall()
@@ -606,7 +672,7 @@ def get_beats():
 @app.route('/api/check_stock/<beat_name>')
 def check_stock(beat_name):
     """Verificar si un beat está disponible"""
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT stock, sold FROM beats WHERE name = ?', (beat_name,))
     beat = c.fetchone()
@@ -635,7 +701,7 @@ def download_beat(transaction_id):
     if not beat_name:
         return jsonify({'error': 'Nombre del beat requerido'}), 400
 
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT file_path, sold, buyer_email FROM beats WHERE name = ?', (beat_name,))
     beat = c.fetchone()
@@ -655,7 +721,7 @@ def download_beat(transaction_id):
     # Los MP3 completos viven en la carpeta privada, fuera de lo público
     file_name = os.path.basename(beat[0])
     if os.path.exists(os.path.join(PRIVATE_BEATS_DIR, file_name)):
-        return send_from_directory(PRIVATE_BEATS_DIR, file_name, as_attachment=True, download_name=f"{beat_name}.mp3")
+        return send_from_directory(os.path.abspath(PRIVATE_BEATS_DIR), file_name, as_attachment=True, download_name=f"{beat_name}.mp3")
     print(f"ATENCIÓN: falta el archivo '{file_name}' en {PRIVATE_BEATS_DIR}/")
     return jsonify({'error': 'Archivo no encontrado. Escríbenos y te lo enviamos.'}), 404
 
