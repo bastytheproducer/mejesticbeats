@@ -34,14 +34,6 @@ function initializeGoogleSignIn() {
         callback: handleCredentialResponse
     });
 
-    // Configurar el origen autorizado para desarrollo local
-    gapi.load('auth2', function() {
-        gapi.auth2.init({
-            client_id: '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com',
-            scope: 'profile email'
-        });
-    });
-
     // Renderizar el botón de Google para login
     google.accounts.id.renderButton(
         document.getElementById('google-login-button'),

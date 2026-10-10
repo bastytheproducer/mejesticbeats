@@ -62,7 +62,9 @@ def add_security_headers(response):
         "connect-src 'self' https://accounts.google.com https://www.googleapis.com https://api.mercadopago.com; "
         "frame-src https://accounts.google.com https://www.mercadopago.com.ar;"
     )
-    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    # allow-popups: con 'same-origin' la ventana de Google no puede devolver el
+    # resultado a la página y el inicio de sesión se queda pegado.
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
