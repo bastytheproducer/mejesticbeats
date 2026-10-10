@@ -1,109 +1,93 @@
-// Obtener parámetros de la URL
+// Página de confirmación: muestra el resultado del pago y entrega el MP3 completo.
+// La descarga la autoriza el servidor, que verifica el pago en Mercado Pago;
+// lo que diga la dirección de esta página no basta para descargar.
+
 const urlParams = new URLSearchParams(window.location.search);
 const beatName = urlParams.get('beat');
-const transactionId = urlParams.get('txn');
-const paymentId = urlParams.get('payment_id'); // Parámetro de Mercado Pago
-const status = urlParams.get('status'); // Estado del pago
+const paymentId = urlParams.get('payment_id') || urlParams.get('collection_id') || urlParams.get('txn');
+const status = urlParams.get('status') || urlParams.get('collection_status');
 
-// Verificar autenticación
-function checkAuthentication() {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-        // Redirigir a login si no hay token
-        window.location.href = 'login.html';
-        return false;
-    }
-    return true;
+function addStep(text, color) {
+    const item = document.createElement('li');
+    item.textContent = text;
+    item.style.color = color;
+    document.querySelector('.next-steps ul').appendChild(item);
 }
 
-// Cargar información de la compra
+function setHeading(icon, title, subtitle) {
+    document.querySelector('.success-icon').textContent = icon;
+    document.querySelector('.success-page h1').textContent = title;
+    document.querySelector('.success-page > p').textContent = subtitle;
+}
+
 function loadPurchaseInfo() {
-    // Para Beat Verano Reggaeton, no verificar autenticación y mostrar descarga inmediata
-    if (beatName === 'Beat Verano Reggaeton') {
-        // Mostrar descarga inmediata para este beat (experimento simplificado)
-        showDownloadSection();
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        window.location.href = 'login.html' + (beatName ? '?beat=' + encodeURIComponent(beatName) : '');
         return;
     }
 
-    if (!checkAuthentication()) return;
-
-    if (beatName) {
-        document.getElementById('beat-name').textContent = decodeURIComponent(beatName);
-    }
-
-    if (transactionId) {
-        document.getElementById('transaction-id').textContent = transactionId;
-    } else if (paymentId) {
-        document.getElementById('transaction-id').textContent = paymentId;
-    }
-
-    // Mostrar fecha actual
-    const now = new Date();
-    const dateString = now.toLocaleDateString('es-ES', {
+    document.getElementById('beat-name').textContent = beatName || '—';
+    document.getElementById('transaction-id').textContent = paymentId || '—';
+    document.getElementById('purchase-date').textContent = new Date().toLocaleDateString('es-CL', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
     });
-    document.getElementById('purchase-date').textContent = dateString;
 
-    // Verificar estado del pago de Mercado Pago
-    if (status === 'approved') {
-        // Pago aprobado, mostrar descarga inmediatamente
-        showDownloadSection();
-    } else if (status === 'pending') {
-        // Pago pendiente
-        showPendingMessage();
-    } else if (status === 'failure') {
-        // Pago fallido
-        showFailureMessage();
+    if (status === 'approved' && beatName && paymentId) {
+        showDownloadSection(token);
+    } else if (status === 'pending' || status === 'in_process') {
+        setHeading('⏳', 'Pago en proceso', 'Mercado Pago todavía está confirmando tu pago.');
+        addStep('Cuando el pago se apruebe, vuelve a esta página para descargar tu beat.', '#ff9a3d');
     } else {
-        // Para desarrollo, mostrar descarga después de un tiempo
-        setTimeout(() => {
-            showDownloadSection();
-        }, 2000);
+        setHeading('⚠️', 'No pudimos confirmar el pago', 'No se hizo ningún cobro por esta compra, o el pago fue rechazado.');
+        addStep('Vuelve al catálogo e intenta de nuevo. Si te cobraron, escríbenos con el ID de transacción.', '#ff6b7d');
     }
 }
 
-// Mostrar sección de descarga
-function showDownloadSection() {
+function showDownloadSection(token) {
     const downloadSection = document.getElementById('downloadSection');
     const downloadLink = document.getElementById('downloadLink');
+    const label = `Descargar ${beatName}`;
 
-    // Construir URL de descarga con el beat seleccionado
-    const downloadUrl = transactionId
-        ? `/api/download/${transactionId}?beat=${encodeURIComponent(beatName)}`
-        : `/api/download/${paymentId}?beat=${encodeURIComponent(beatName)}`;
-
-    downloadLink.href = downloadUrl;
-    downloadLink.textContent = `Descargar ${beatName}`;
-
+    downloadLink.textContent = label;
     downloadSection.style.display = 'block';
+
+    downloadLink.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (downloadLink.dataset.busy) return;
+        downloadLink.dataset.busy = '1';
+        downloadLink.textContent = 'Preparando descarga…';
+
+        try {
+            const response = await fetch(
+                `/api/download/${encodeURIComponent(paymentId)}?beat=${encodeURIComponent(beatName)}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'No se pudo descargar el beat');
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const tempLink = document.createElement('a');
+            tempLink.href = url;
+            tempLink.download = `${beatName}.mp3`;
+            document.body.appendChild(tempLink);
+            tempLink.click();
+            tempLink.remove();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            addStep(`${error.message}. Escríbenos con el ID de transacción y te lo enviamos.`, '#ff6b7d');
+        } finally {
+            delete downloadLink.dataset.busy;
+            downloadLink.textContent = label;
+        }
+    });
 }
 
-// Mostrar mensaje de pago pendiente
-function showPendingMessage() {
-    const nextSteps = document.querySelector('.next-steps ul');
-    const pendingItem = document.createElement('li');
-    pendingItem.textContent = 'Tu pago está siendo procesado. Recibirás un email cuando esté aprobado.';
-    pendingItem.style.color = '#ffa500';
-    nextSteps.appendChild(pendingItem);
-}
-
-// Mostrar mensaje de pago fallido
-function showFailureMessage() {
-    const nextSteps = document.querySelector('.next-steps ul');
-    const failureItem = document.createElement('li');
-    failureItem.textContent = 'Tu pago no pudo ser procesado. Intenta nuevamente.';
-    failureItem.style.color = '#ff0000';
-    nextSteps.appendChild(failureItem);
-
-    // Ocultar sección de descarga
-    document.getElementById('downloadSection').style.display = 'none';
-}
-
-// Inicializar página
-document.addEventListener('DOMContentLoaded', function() {
-    loadPurchaseInfo();
-});
+document.addEventListener('DOMContentLoaded', loadPurchaseInfo);

@@ -1,0 +1,219 @@
+/* Majestic Beats — base compartida por todas las páginas.
+   Paleta tomada de las carátulas: noche índigo, atardecer naranja/magenta, cian de piscina. */
+@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Tilt+Neon&display=swap");
+
+:root {
+    --night: #130a2e;
+    --dusk: #21104d;
+    --plum: #37196a;
+    --magenta: #ff3d8b;
+    --orange: #ff9a3d;
+    --cyan: #2de2e6;
+    --cream: #fff4e6;
+    --muted: rgba(255, 244, 230, 0.68);
+    --line: rgba(255, 244, 230, 0.14);
+    --panel: rgba(255, 244, 230, 0.05);
+    --danger: #ff6b7d;
+
+    --font-display: "Tilt Neon", "Figtree", system-ui, sans-serif;
+    --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+    --radius-s: 8px;
+    --radius-m: 14px;
+    --radius-l: 22px;
+    --wrap: 1180px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 84px;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--cream);
+    background:
+        radial-gradient(900px 520px at 88% -8%, rgba(255, 61, 139, 0.22), transparent 62%),
+        radial-gradient(700px 480px at -6% 30%, rgba(45, 226, 230, 0.1), transparent 60%),
+        linear-gradient(180deg, var(--night) 0%, var(--dusk) 100%) fixed;
+    background-color: var(--night);
+    -webkit-font-smoothing: antialiased;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+a {
+    color: var(--cyan);
+    text-underline-offset: 3px;
+}
+
+a:hover {
+    color: var(--cream);
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.1;
+    margin: 0;
+    letter-spacing: 0.01em;
+}
+
+p {
+    margin: 0;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* Marca */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--cream);
+    text-decoration: none;
+    text-shadow: 0 0 18px rgba(255, 154, 61, 0.55);
+}
+
+.brand svg {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    filter: drop-shadow(0 0 8px rgba(255, 154, 61, 0.6));
+}
+
+/* Botones */
+.btn-primary,
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 26px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    border: 2px solid var(--orange);
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.btn-primary {
+    background: var(--orange);
+    color: var(--night);
+    box-shadow: 0 0 26px rgba(255, 154, 61, 0.35);
+}
+
+.btn-primary:hover {
+    background: var(--cream);
+    border-color: var(--cream);
+    color: var(--night);
+}
+
+.btn-primary:disabled {
+    opacity: 0.55;
+    cursor: progress;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--orange);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 154, 61, 0.14);
+    color: var(--cream);
+}
+
+/* Páginas legales (términos y privacidad) */
+body.legal .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+}
+
+body.legal .legal-top {
+    margin-bottom: 48px;
+}
+
+body.legal header h1 {
+    font-size: clamp(2rem, 6vw, 3rem);
+    text-shadow: 0 0 24px rgba(255, 61, 139, 0.5);
+}
+
+body.legal header p {
+    color: var(--muted);
+    margin-top: 10px;
+}
+
+body.legal main {
+    margin-top: 36px;
+}
+
+body.legal section {
+    padding: 22px 0;
+    border-top: 1px solid var(--line);
+}
+
+body.legal section h2 {
+    font-size: 1.3rem;
+    color: var(--orange);
+    margin-bottom: 10px;
+}
+
+body.legal section p,
+body.legal section li {
+    color: var(--muted);
+}
+
+body.legal ul {
+    padding-left: 20px;
+    margin: 10px 0 0;
+}
+
+body.legal footer {
+    margin-top: 30px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

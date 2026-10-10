@@ -1,6 +1,7 @@
-from flask import Flask, send_from_directory, request, jsonify
-import ssl
+from flask import Flask, send_from_directory, request, jsonify, abort
 import os
+import re
+import urllib.parse
 import ipaddress
 import requests
 import json
@@ -13,11 +14,27 @@ import secrets
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 
 app = Flask(__name__, static_folder='.')
 
-# JWT Secret Key
-JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'tu_clave_secreta_muy_segura_aqui')
+# Clave para firmar las sesiones (JWT). Debe venir de la variable de entorno
+# JWT_SECRET_KEY; nunca se deja una clave fija en el código, porque cualquiera
+# que lea el repositorio podría fabricar sesiones válidas.
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+if not JWT_SECRET_KEY:
+    JWT_SECRET_KEY = secrets.token_urlsafe(48)
+    print("AVISO: falta JWT_SECRET_KEY. Se generó una clave temporal: "
+          "las sesiones se cerrarán cada vez que el servidor se reinicie.")
+
+# Carpeta con los MP3 completos. No es pública ni va al repositorio:
+# solo se entrega un archivo después de verificar el pago.
+PRIVATE_BEATS_DIR = os.environ.get('PRIVATE_BEATS_DIR', 'beats_privados')
+
+# Lo único que el servidor entrega como archivo estático.
+PUBLIC_EXTENSIONS = {'.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico'}
+PUBLIC_AUDIO_DIR = 'previews'  # adelantos de 45 segundos
 
 @app.after_request
 def add_security_headers(response):
@@ -86,7 +103,17 @@ def index():
 
 @app.route('/<path:filename>')
 def serve_file(filename):
-    return send_from_directory('.', filename)
+    # Lista de permitidos: sin esto se podían descargar users.db, server.py,
+    # las llaves .pem y los MP3 completos con solo escribir su nombre.
+    normalized = os.path.normpath(filename).replace('\\', '/')
+    parts = normalized.split('/')
+    if normalized.startswith('/') or any(p in ('', '..') or p.startswith('.') for p in parts):
+        abort(404)
+    ext = os.path.splitext(normalized)[1].lower()
+    is_public = ext in PUBLIC_EXTENSIONS or (ext == '.mp3' and parts[0] == PUBLIC_AUDIO_DIR)
+    if not is_public or parts[0] in (PRIVATE_BEATS_DIR, 'BEATS'):
+        abort(404)
+    return send_from_directory('.', normalized)
 
 @app.route('/success.html')
 def success_page():
@@ -99,39 +126,35 @@ def google_auth():
         return jsonify({'success': False, 'message': 'Token no proporcionado'}), 400
 
     try:
-        # Verificar el token de Google
-        # Decodificar el JWT sin verificar (para desarrollo; en producción, verifica con Google)
-        decoded = jwt.decode(data['credential'], options={"verify_signature": False})
+        # Verificar firma, emisor, audiencia y vencimiento del token con Google
+        decoded = google_id_token.verify_oauth2_token(
+            data['credential'], google_requests.Request(), GOOGLE_CLIENT_ID)
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Token inválido'}), 400
 
-        # En producción, deberías verificar el token con Google
-        # Aquí simulamos validación básica
-        if decoded.get('iss') == 'https://accounts.google.com' and decoded.get('aud') == GOOGLE_CLIENT_ID:
-            # Verificar que el email esté presente
-            user_email = decoded.get('email')
-            if not user_email:
-                return jsonify({'success': False, 'message': 'Email no encontrado en el token'}), 400
+    try:
+        user_email = decoded.get('email')
+        if not user_email or not decoded.get('email_verified'):
+            return jsonify({'success': False, 'message': 'Email no verificado en el token'}), 400
 
-            # Generar JWT token
-            token_payload = {
-                'user_id': decoded.get('sub', user_email),
-                'email': user_email,
+        token_payload = {
+            'user_id': decoded.get('sub', user_email),
+            'email': user_email,
+            'name': decoded.get('name'),
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        }
+        token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm='HS256')
+
+        return jsonify({
+            'success': True,
+            'message': 'Autenticación exitosa',
+            'token': token,
+            'user': {
                 'name': decoded.get('name'),
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+                'email': user_email,
+                'picture': decoded.get('picture')
             }
-            token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm='HS256')
-
-            return jsonify({
-                'success': True,
-                'message': 'Autenticación exitosa',
-                'token': token,
-                'user': {
-                    'name': decoded.get('name'),
-                    'email': user_email,
-                    'picture': decoded.get('picture')
-                }
-            })
-        else:
-            return jsonify({'success': False, 'message': 'Token inválido'}), 400
+        })
     except Exception as e:
         print(f"Error en autenticación Google: {str(e)}")
         return jsonify({'success': False, 'message': 'Error en autenticación'}), 500
@@ -186,13 +209,14 @@ def login():
 
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
-    c.execute('SELECT id, name, password_hash, reset_token FROM users WHERE email = ?', (email,))
+    c.execute('SELECT id, name, password_hash, reset_token, reset_token_expiry FROM users WHERE email = ?', (email,))
     user = c.fetchone()
     conn.close()
 
     if user:
-        # Verificar si es una clave temporal
-        if user[3] and user[3] == password:
+        # Verificar si es una clave temporal (solo mientras no haya vencido)
+        temp_valid = bool(user[3]) and bool(user[4]) and str(user[4]) > str(datetime.datetime.utcnow())
+        if temp_valid and secrets.compare_digest(str(user[3]), password):
             # Es una clave temporal, redirigir a cambio de contraseña
             token_payload = {
                 'user_id': user[0],
@@ -249,7 +273,7 @@ TRANSBANK_ENVIRONMENT = os.environ.get('TRANSBANK_ENVIRONMENT', 'TEST')  # 'TEST
 
 # Configuración de Google OAuth
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '834692381201-sa5mpbj4mjrucgkslgf0oacdn40p6794.apps.googleusercontent.com')
-GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '****VaJN')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 
 # Configuración de email para recuperación de contraseña
 SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
@@ -261,6 +285,60 @@ FROM_EMAIL = os.environ.get('FROM_EMAIL', 'tu-email@gmail.com')
 # Modo desarrollo para emails
 DEV_MODE = os.environ.get('DEV_MODE', 'true').lower() == 'true'
 
+def parse_price_clp(text):
+    """'$30.000 CLP' -> 30000"""
+    digits = re.sub(r'\D', '', text or '')
+    return int(digits) if digits else 0
+
+def make_reference(email, beat_name):
+    return f"{email}|{beat_name}"
+
+def confirm_payment(payment_id, expected_email=None, expected_beat=None):
+    """Consulta el pago directamente en Mercado Pago y, si está aprobado y
+    corresponde, marca el beat como vendido a ese comprador.
+    Devuelve (True, nombre_del_beat) o (False, motivo)."""
+    if not payment_id or not str(payment_id).isdigit():
+        return False, 'Identificador de pago inválido'
+    try:
+        info = sdk.payment().get(payment_id)
+    except Exception as e:
+        print(f"Error consultando pago {payment_id}: {e}")
+        return False, 'No se pudo verificar el pago'
+
+    payment = info.get('response') or {}
+    if info.get('status') != 200 or payment.get('status') != 'approved':
+        return False, 'El pago no está aprobado'
+
+    reference = payment.get('external_reference') or ''
+    if '|' not in reference:
+        return False, 'Pago sin referencia válida'
+    email, beat_name = reference.split('|', 1)
+    if expected_email and email != expected_email:
+        return False, 'El pago pertenece a otra cuenta'
+    if expected_beat and beat_name != expected_beat:
+        return False, 'El pago corresponde a otro beat'
+
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT price, sold, buyer_email FROM beats WHERE name = ?', (beat_name,))
+    beat = c.fetchone()
+    if not beat:
+        conn.close()
+        return False, 'Beat no encontrado'
+    if float(payment.get('transaction_amount') or 0) < parse_price_clp(beat[0]):
+        conn.close()
+        return False, 'El monto pagado no coincide con el precio'
+    if beat[1] and beat[2] != email:
+        conn.close()
+        print(f"ATENCIÓN: pago {payment_id} aprobado para '{beat_name}', que ya estaba vendido. Requiere reembolso manual a {email}.")
+        return False, 'Este beat ya fue vendido a otra persona'
+    if not beat[1]:
+        c.execute('UPDATE beats SET sold = 1, sold_date = ?, buyer_email = ?, stock = 0 WHERE name = ? AND sold = 0',
+                  (datetime.datetime.utcnow(), email, beat_name))
+        conn.commit()
+    conn.close()
+    return True, beat_name
+
 @app.route('/api/create_preference', methods=['POST'])
 def create_preference():
     """Crear preferencia de pago para Mercado Pago"""
@@ -269,15 +347,28 @@ def create_preference():
     if not user:
         return jsonify({'success': False, 'message': 'Autenticación requerida'}), 401
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     beat_name = data.get('beat_name')
-    beat_price = data.get('beat_price', 0)
-
-    if not beat_name or beat_price <= 0:
+    if not beat_name:
         return jsonify({'success': False, 'message': 'Datos de beat inválidos'}), 400
+
+    # El precio se lee de la base de datos: lo que envíe el navegador no se usa,
+    # así nadie puede pagar menos cambiando el monto.
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('SELECT price, stock, sold FROM beats WHERE name = ?', (beat_name,))
+    beat = c.fetchone()
+    conn.close()
+    if not beat or beat[2] or beat[1] <= 0:
+        return jsonify({'success': False, 'message': 'Este beat ya no está disponible'}), 404
+
+    unit_price = parse_price_clp(beat[0])
+    if unit_price <= 0:
+        return jsonify({'success': False, 'message': 'Precio no configurado'}), 500
 
     # Obtener URL base para callbacks
     base_url = request.host_url.rstrip('/')
+    beat_query = urllib.parse.quote(beat_name)
 
     # Crear preferencia de pago
     preference_data = {
@@ -285,17 +376,18 @@ def create_preference():
             {
                 "title": f"Beat: {beat_name}",
                 "quantity": 1,
-                "unit_price": float(beat_price.replace('$', '').replace(',', ''))
+                "currency_id": "CLP",
+                "unit_price": unit_price
             }
         ],
         "back_urls": {
-            "success": f"{base_url}/success.html",
-            "failure": f"{base_url}/checkout.html",
-            "pending": f"{base_url}/checkout.html"
+            "success": f"{base_url}/success.html?beat={beat_query}",
+            "failure": f"{base_url}/checkout.html?beat={beat_query}",
+            "pending": f"{base_url}/success.html?beat={beat_query}"
         },
         "auto_return": "approved",
-        "external_reference": f"{user['user_id']}_{beat_name}",
-        "marketplace_fee": 0  # Sin comisión de marketplace
+        "notification_url": f"{base_url}/api/payment_notification",
+        "external_reference": make_reference(user['email'], beat_name)
     }
 
     try:
@@ -314,42 +406,14 @@ def create_preference():
 @app.route('/api/payment_notification', methods=['POST'])
 def payment_notification():
     """Webhook para notificaciones de Mercado Pago"""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
-    # Verificar que la solicitud provenga de Mercado Pago (básica)
-    # En producción, implementar verificación de firma HMAC
-    if not data:
-        return jsonify({'status': 'error', 'message': 'No data received'}), 400
-
+    # El contenido del aviso no se da por cierto: solo se toma el id del pago
+    # y su estado real se consulta directamente en Mercado Pago.
     if data.get('type') == 'payment':
-        payment_id = data.get('data', {}).get('id')
-
-        if payment_id:
-            try:
-                # Obtener detalles del pago desde Mercado Pago
-                payment_info = sdk.payment().get(payment_id)
-                payment_data = payment_info['response']
-
-                # Verificar estado del pago
-                status = payment_data.get('status')
-                external_reference = payment_data.get('external_reference')
-
-                print(f"Notificación de pago recibida: ID {payment_id}, Estado: {status}, Referencia: {external_reference}")
-
-                # Aquí puedes actualizar tu base de datos según el estado del pago
-                # Por ejemplo, marcar como pagado, enviar email de confirmación, etc.
-
-                if status == 'approved':
-                    print(f"Pago aprobado para: {external_reference}")
-                    # Actualizar base de datos: marcar como vendido, enviar beat por email, etc.
-                elif status == 'rejected':
-                    print(f"Pago rechazado para: {external_reference}")
-                elif status == 'pending':
-                    print(f"Pago pendiente para: {external_reference}")
-
-            except Exception as e:
-                print(f"Error procesando notificación de pago: {str(e)}")
-                return jsonify({'status': 'error', 'message': 'Error processing payment'}), 500
+        payment_id = (data.get('data') or {}).get('id')
+        ok, detail = confirm_payment(payment_id)
+        print(f"Notificación de pago {payment_id}: {'vendido ' + detail if ok else detail}")
 
     return jsonify({'status': 'ok'}), 200
 
@@ -514,28 +578,8 @@ def change_password():
 @app.route('/api/create_transbank_transaction', methods=['POST'])
 def create_transbank_transaction():
     """Crear transacción de Transbank (placeholders)"""
-    # Verificar autenticación
-    user = verify_token()
-    if not user:
-        return jsonify({'success': False, 'message': 'Autenticación requerida'}), 401
-
-    data = request.get_json()
-    beat_name = data.get('beat_name')
-    beat_price = data.get('beat_price', 0)
-
-    if not beat_name or beat_price <= 0:
-        return jsonify({'success': False, 'message': 'Datos de beat inválidos'}), 400
-
-    # Placeholder para integración con Transbank
-    # En producción, aquí iría la lógica para crear la transacción con la API de Transbank
-    # Usando TRANSBANK_API_KEY, TRANSBANK_COMMERCE_CODE, etc.
-
-    # Simular respuesta exitosa con placeholders
-    return jsonify({
-        'success': True,
-        'redirect_url': 'https://webpay3g.transbank.cl/webpayserver/initTransaction',  # Placeholder
-        'token': 'PLACEHOLDER_TOKEN_TRANSBANK'  # Placeholder
-    })
+    # Transbank todavía no está integrado. Antes devolvía un éxito falso.
+    return jsonify({'success': False, 'message': 'Transbank no está disponible por ahora. Usa Mercado Pago.'}), 501
 
 @app.route('/api/beats')
 def get_beats():
@@ -574,37 +618,9 @@ def check_stock(beat_name):
     else:
         return jsonify({'available': False, 'stock': 0, 'sold': False}), 404
 
-@app.route('/api/mark_sold/<beat_name>', methods=['POST'])
-def mark_beat_sold(beat_name):
-    """Marcar un beat como vendido"""
-    # Verificar autenticación
-    user = verify_token()
-    if not user:
-        return jsonify({'success': False, 'message': 'Autenticación requerida'}), 401
-
-    data = request.get_json()
-    buyer_email = data.get('buyer_email', user.get('email'))
-
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-
-    # Verificar que el beat existe y no está vendido
-    c.execute('SELECT id, stock FROM beats WHERE name = ? AND sold = 0', (beat_name,))
-    beat = c.fetchone()
-
-    if not beat:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Beat no disponible'}), 404
-
-    # Marcar como vendido
-    c.execute('''UPDATE beats SET sold = 1, sold_date = ?, buyer_email = ?, stock = 0
-                 WHERE name = ?''',
-              (datetime.datetime.utcnow(), buyer_email, beat_name))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({'success': True, 'message': 'Beat marcado como vendido'})
+# Nota: se eliminó /api/mark_sold. Permitía que cualquier usuario registrado
+# marcara un beat como comprado sin pagar y luego lo descargara. Ahora un beat
+# solo se marca como vendido en confirm_payment(), tras verificar el pago.
 
 @app.route('/api/download/<transaction_id>')
 def download_beat(transaction_id):
@@ -619,28 +635,32 @@ def download_beat(transaction_id):
     if not beat_name:
         return jsonify({'error': 'Nombre del beat requerido'}), 400
 
-    # Verificar que el usuario compró este beat
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
-    c.execute('SELECT file_path FROM beats WHERE name = ? AND buyer_email = ? AND sold = 1',
-              (beat_name, user['email']))
+    c.execute('SELECT file_path, sold, buyer_email FROM beats WHERE name = ?', (beat_name,))
     beat = c.fetchone()
     conn.close()
 
     if not beat:
-        return jsonify({'error': 'Beat no encontrado o no autorizado'}), 404
+        return jsonify({'error': 'Beat no encontrado'}), 404
 
-    beat_file = beat[0]
+    # Solo descarga quien lo compró. Si aún no está registrado como vendido a
+    # este usuario, se verifica el pago directamente en Mercado Pago.
+    already_owner = bool(beat[1]) and beat[2] == user.get('email')
+    if not already_owner:
+        ok, detail = confirm_payment(transaction_id, user.get('email'), beat_name)
+        if not ok:
+            return jsonify({'error': detail}), 403
 
-    if os.path.exists(beat_file):
-        return send_from_directory('.', beat_file, as_attachment=True, download_name=f"{beat_name}.mp3")
-    else:
-        return jsonify({'error': 'Archivo no encontrado'}), 404
+    # Los MP3 completos viven en la carpeta privada, fuera de lo público
+    file_name = os.path.basename(beat[0])
+    if os.path.exists(os.path.join(PRIVATE_BEATS_DIR, file_name)):
+        return send_from_directory(PRIVATE_BEATS_DIR, file_name, as_attachment=True, download_name=f"{beat_name}.mp3")
+    print(f"ATENCIÓN: falta el archivo '{file_name}' en {PRIVATE_BEATS_DIR}/")
+    return jsonify({'error': 'Archivo no encontrado. Escríbenos y te lo enviamos.'}), 404
 
 if __name__ == '__main__':
     # Para desarrollo local con HTTPS y certificados de confianza
-    import os
-    import subprocess
 
     # Obtener puerto desde variable de entorno (para despliegue en la nube)
     port = int(os.environ.get('PORT', 5000))

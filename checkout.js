@@ -37,32 +37,32 @@ async function loadBeatData() {
             'Beat Verano Reggaeton': {
                 price: '$20.000 CLP',
                 genre: 'Reggaeton',
-                image: 'Caratulas de lo beats/beat verano reggeaton.png'
+                image: 'covers/verano-reggaeton.webp'
             },
             'Beat 2025 Verano Trap': {
                 price: '$25.000 CLP',
                 genre: 'Trap',
-                image: 'Caratulas de lo beats/Beat 2025 verano trap.png'
+                image: 'covers/verano-trap-2025.webp'
             },
             'Beat Rellax Reggaeton': {
                 price: '$22.000 CLP',
                 genre: 'Reggaeton Relax',
-                image: 'Caratulas de lo beats/beat rellax reggeaton.png'
+                image: 'covers/rellax-reggaeton.webp'
             },
             'Beat Hip Hop Piano Gigant': {
                 price: '$28.000 CLP',
                 genre: 'Hip Hop',
-                image: 'Caratulas de lo beats/beat hip hop piano gigant.jpg'
+                image: 'covers/hip-hop-piano-gigant.webp'
             },
             'Beat Sin Frontera': {
                 price: '$30.000 CLP',
                 genre: 'Instrumental',
-                image: 'Caratulas de lo beats/beat sin frontera.png'
+                image: 'covers/sin-frontera.webp'
             },
             'Beat Trap Navideño Chilling': {
                 price: '$26.000 CLP',
                 genre: 'Trap Navideño',
-                image: 'Caratulas de lo beats/beat trap navideño chilling.png'
+                image: 'covers/trap-navideno-chilling.webp'
             }
         };
     }
